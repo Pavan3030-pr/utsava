@@ -1,108 +1,81 @@
 # Utsava (उत्सव) — AI Celebration & Event Planner
 
-**GenAI-powered planning assistant for weddings, birthdays and community events.**  
-Built for PromptWars Virtual – Challenge: Celebration & Event Planner.
+> Describe a wedding, birthday or community event in one sentence. Watch Gemini write a complete budget, timeline, vendor playbook and themes **live** — then refine it by asking.
 
-> Sanskrit for *festival / celebration*. Designed with deep respect for Indian culture, rituals and multi-day events.
+Built for **PromptWars Virtual — Celebration & Event Planner**.
 
----
+## ✨ What makes it different
 
-## Features
+| | |
+|---|---|
+| **Natural-language intake** | "200-guest Telugu wedding in Hyderabad, 25 lakhs" → Gemini fills the structured brief (date, guests, budget, city, language). |
+| **Live streaming plan** | `streamObject` + a Zod schema: sections appear on screen as Gemini writes them. |
+| **Verified numbers** | LLMs can't add. A deterministic `reconcileBudget()` makes every rupee line sum to the exact total. |
+| **AI Copilot** | "Cut 15%", "plan for rain", "add a vegan menu" → whole plan revised, **checklist progress preserved**, budget before → after shown. |
+| **9 Indian languages** | Plan *and* WhatsApp invitation in Hindi, Telugu, Tamil, Kannada, Malayalam, Marathi, Bengali, Gujarati, English. |
+| **Real-dated timeline** | Anchored to your date, exportable as `.ics`; the model is told how many days remain so it never schedules into the past. |
+| **Contingency planning** | Risks (rain, vendor no-show, overruns) each with a mitigation. |
+| **No sign-up, private** | Plans live in your browser; nothing stored server-side (stateless → Cloud Run friendly). |
 
-- **Premium light theme** – Clean Google / Microsoft Fluent inspired UI (soft whites, subtle elevation, blue accent `#1a73e8`)
-- **Multi-page navigation** – Landing → Auth → Create Event → Interactive Dashboard
-- **AI Plan Generation** – Budgets (INR), timelines, vendor checklists, themes & cultural notes
-- **Interactive Dashboard** – Overview · Budget · Timeline · Checklist · Ideas · Chat
-- **Indian cultural awareness** – Rituals, regional styles, realistic vendor ranges
-- **Supabase ready** – Auth + Postgres + RLS schema included
-- **OpenAI ready** – Structured output via Vercel AI SDK + Zod
-- **Demo mode** – Works without keys; switches to real AI/Auth when keys are present
+## 🏗 Architecture
 
----
+```mermaid
+flowchart LR
+  U[Browser<br/>Next.js App Router] -->|free text| P[/api/plan/parse/]
+  U -->|validated intake| S[/api/plan/stream/]
+  U -->|instruction + plan| R[/api/plan/refine/]
+  P & S & R --> G[guard: rate-limit → size-limit → Zod]
+  G --> M[Gemini 2.5 Flash<br/>Vercel AI SDK<br/>structured output]
+  M --> V[Verifier<br/>reconcileBudget · palette repair<br/>mergeProgress]
+  V --> U
+  U --> L[(localStorage<br/>private plans)]
+```
 
-## Tech Stack
+* **Stateless server** — no DB, no sessions; deploy anywhere (Cloud Run / Vercel).
+* **Schema-first** — one Zod schema is the contract for the model, the API and the UI.
+* **Defence in depth** — IP rate limiting, body-size caps, Zod validation on every route, delimiter-safe prompts (`<user_input>` + angle-bracket stripping), strict security headers + CSP, no keys on the client.
 
-| Layer        | Tech                                      |
-|--------------|-------------------------------------------|
-| Framework    | Next.js 15 (App Router) + TypeScript      |
-| Styling      | Tailwind CSS v4                           |
-| AI           | Vercel AI SDK + OpenAI + Zod              |
-| Auth & DB    | Supabase (Auth + Postgres + RLS)          |
-| Deploy       | Vercel                                    |
+## 🎯 Mapped to the judging criteria
 
----
+| Criterion | Where |
+|---|---|
+| Problem alignment | Budgets · timelines · vendor checklists · personalised ideas for weddings / birthdays / community events |
+| Genuine GenAI | Intake parsing, streamed generation, conversational revision, multilingual output — no hard-coded plans, no demo fallback |
+| Code quality | Typed end-to-end, pure logic in `src/lib`, thin routes, small components |
+| Security | `src/lib/api.ts`, `next.config.ts`, prompt sanitising (`prompts.ts`) |
+| Efficiency | Streaming, `gemini-2.5-flash`, stateless, standalone Docker build |
+| Testing | `tests/` — budget maths, INR parsing, dates, ICS (RFC-5545 folding), rate limiter, prompt-injection, schema edge cases |
+| Accessibility | Skip link, ARIA tabs with arrow-key nav, labelled forms, live regions, `progressbar`, reduced-motion, focus rings, text alternatives for charts |
 
-## Getting Started
+## 🔁 Before → after
 
-### 1. Install
+| Before | After |
+|---|---|
+| Hard-coded demo plan when AI failed | Real error + retry; **never fake output** |
+| Non-functional login/signup forms | Removed — no-account, privacy-first |
+| One blocking request, spinner | Live streaming with section progress |
+| LLM-written budget (often didn't add up) | Verified by code; badge shows reconciliation |
+| Chat replied with a placeholder string | Copilot revises the full plan, keeps progress |
+| English only | 9 languages |
+| No tests, no CI, PostCSS config missing | 40+ tests, GitHub Actions, Dockerfile, health check |
+
+## 🚀 Run locally
 
 ```bash
 npm install
+cp .env.example .env.local      # add GOOGLE_GENERATIVE_AI_API_KEY (free: aistudio.google.com/apikey)
+npm run dev                     # http://localhost:3000
+npm run verify                  # lint + typecheck + tests + build
 ```
 
-### 2. Environment Variables
+## ☁️ Deploy
 
-Copy `.env.example` → `.env.local` (or add them directly in Vercel):
-
-```
-OPENAI_API_KEY=sk-...
-NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
-```
-
-> Without keys the app runs in **demo mode** (still fully navigable).
-
-### 3. Supabase Setup
-
-See **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)** for the exact steps and SQL.
-
-### 4. Run locally
-
+**Google Cloud Run**
 ```bash
-npm run dev
+gcloud run deploy utsava --source . --region asia-south1 --allow-unauthenticated \
+  --set-env-vars GOOGLE_GENERATIVE_AI_API_KEY=YOUR_KEY
 ```
+**Vercel:** import the repo, add `GOOGLE_GENERATIVE_AI_API_KEY`, deploy.
 
-Open http://localhost:3000
-
----
-
-## Status
-
-| Feature                        | Status      |
-|--------------------------------|-------------|
-| Landing + multi-page nav       | ✅ Complete |
-| Premium light theme            | ✅ Complete |
-| Create event wizard            | ✅ Complete |
-| Dashboard (all tabs)           | ✅ Complete |
-| OpenAI generate endpoint       | ✅ Complete |
-| Zod + cultural system prompt   | ✅ Complete |
-| Supabase schema + RLS          | ✅ Ready    |
-| Supabase client helpers        | ✅ Ready    |
-| Demo mode fallback             | ✅ Working  |
-| Full Auth form → Supabase      | ⏳ Pending  |
-| Persist plans to DB            | ⏳ Pending  |
-| Streaming chat refinement      | ⏳ Pending  |
-| PDF export                     | ⏳ Pending  |
-| Mood-board images (DALL·E)     | ⏳ Pending  |
-
----
-
-## Deploy on Vercel
-
-1. Import this repo in Vercel
-2. Add the 4 environment variables
-3. Deploy
-
-After creating your Supabase project and running `schema.sql`, the app will use real Auth + real AI automatically.
-
----
-
-## Name Meaning
-
-**Utsava (उत्सव)** — Festival, celebration, joyous occasion.  
-Chosen so every Indian user immediately feels at home.
-
----
-
-Built with care for the PromptWars leaderboard.
+## Known limits
+Rate limiting is per-instance (swap for Upstash/Redis for a global limit). Prices are AI estimates — always confirm with vendors.
