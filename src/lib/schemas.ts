@@ -130,13 +130,6 @@ export type StoredPlan = EventPlan & {
   meta?: { budgetAdjusted: boolean; generatedAt: string };
 };
 
-export const RefineResultSchema = z.object({
-  reply: z.string().describe("Friendly 1-2 sentence answer to the user"),
-  changes: z.array(z.string()).describe("Short bullet list of what changed"),
-  plan: PlanSchema,
-});
-export type RefineResult = z.infer<typeof RefineResultSchema>;
-
 export const ParseRequestSchema = z.object({ text: z.string().trim().min(5).max(800) });
 export const RefineRequestSchema = z.object({
   intake: IntakeSchema,
@@ -151,3 +144,82 @@ export type DeepPartial<T> = T extends (infer U)[]
     ? { [K in keyof T]?: DeepPartial<T[K]> }
     : T;
 export type PartialPlan = DeepPartial<StoredPlan>;
+
+/* ---------- Parallel generation: 3 independent slices of the plan ---------- */
+export const PlanCoreSchema = PlanSchema.pick({
+  title: true, tagline: true, summary: true, themes: true, budget: true, culturalNotes: true,
+});
+export const PlanScheduleSchema = PlanSchema.pick({ schedule: true, timeline: true, risks: true });
+export const PlanOpsSchema = PlanSchema.pick({ checklist: true, vendors: true, invitation: true });
+
+export const PLAN_PARTS = ["core", "schedule", "ops"] as const;
+export type PlanPart = (typeof PLAN_PARTS)[number];
+export const PART_SCHEMAS = { core: PlanCoreSchema, schedule: PlanScheduleSchema, ops: PlanOpsSchema } as const;
+
+export const PartQuerySchema = z.enum(PLAN_PARTS);
+
+/* ---------- Guests & RSVPs ---------- */
+export type RsvpStatus = "yes" | "no" | "maybe";
+export interface Rsvp { event: string; status: RsvpStatus; partySize: number; note?: string }
+export interface Guest {
+  id: string;
+  eventId: string;
+  name: string;
+  phone?: string;
+  group?: string;
+  diet?: string;
+  /** names of the sub-events (mehendi, sangeet…) this guest is invited to */
+  invited: string[];
+  token: string;
+  rsvps: Rsvp[];
+}
+
+export const RsvpSubmitSchema = z.object({
+  responses: z
+    .array(
+      z.object({
+        event: z.string().trim().min(1).max(120),
+        status: z.enum(["yes", "no", "maybe"]),
+        partySize: z.number().int().min(1).max(20),
+        note: z.string().trim().max(300).optional(),
+      }),
+    )
+    .min(1)
+    .max(12),
+});
+
+/* ---------- Spend tracker & vendor pipeline (stored with the event) ---------- */
+export interface Expense {
+  id: string;
+  category: string;
+  vendor: string;
+  note?: string;
+  amount: number;
+  paid: number;
+  dueDate?: string;
+}
+export type ShortlistStatus = "shortlisted" | "quoted" | "booked" | "rejected";
+export interface ShortlistItem {
+  id: string;
+  category: string;
+  name: string;
+  phone?: string;
+  quote?: number;
+  status: ShortlistStatus;
+  notes?: string;
+}
+export interface Ledger { expenses: Expense[]; shortlist: ShortlistItem[] }
+export const EMPTY_LEDGER: Ledger = { expenses: [], shortlist: [] };
+
+export const RefineResultSchema = z.object({
+  reply: z.string().describe("Friendly 1-2 sentence answer to the user"),
+  changes: z.array(z.string()).describe("Short bullet list of what changed"),
+  updates: z
+    .object({
+      core: PlanCoreSchema.optional(),
+      schedule: PlanScheduleSchema.optional(),
+      ops: PlanOpsSchema.optional(),
+    })
+    .describe("Include a slice ONLY if it must change; each included slice must be complete"),
+});
+export type RefineResult = z.infer<typeof RefineResultSchema>;

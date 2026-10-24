@@ -14,16 +14,16 @@ const PIPELINE = [
   { n: "1", title: "Understand", body: "Gemini turns a sentence into a structured brief: type, date, guests, budget, city, language." },
   { n: "2", title: "Plan live", body: "Budget, schedule, timeline, vendors and themes stream onto your screen as they are written." },
   { n: "3", title: "Verify", body: "A deterministic checker reconciles every rupee so the budget always adds up — no LLM arithmetic." },
-  { n: "4", title: "Refine", body: "Tell the copilot “cut 15%” or “add a vegan menu” and watch the whole plan adapt, progress preserved." },
+  { n: "4", title: "Run it", body: "Invite guests per event, collect RSVPs, track every payment — and ask the copilot to adapt the plan any time." },
 ];
 
 const FEATURES = [
-  { icon: "₹", title: "Budgets that add up", body: "Realistic INR splits for your city and guest count, with a saving tip on every line." },
-  { icon: "🗓", title: "Real-dated timeline", body: "Milestones anchored to your date, exportable to Google or Apple Calendar in one click." },
-  { icon: "🧾", title: "Vendor playbook", body: "Sharp questions to ask, honest price ranges and book-by deadlines for each vendor." },
-  { icon: "🎨", title: "Mood-board themes", body: "Colour palettes and décor ideas per theme — rendered instantly, no image waiting." },
+  { icon: "⚡", title: "Plans in seconds", body: "Three Gemini planners run in parallel and stream results live — the first section appears in about a second." },
+  { icon: "☺", title: "Multi-event guest lists", body: "Mehendi, sangeet, wedding, reception — invite each guest to exactly the events they belong to." },
+  { icon: "💌", title: "Personal RSVP links", body: "Every guest gets their own invitation page and WhatsApp message. Responses land in your dashboard live." },
+  { icon: "▤", title: "Spend tracker", body: "Log quotes and payments against the plan. See overspend, balances and dues before they bite." },
+  { icon: "✦", title: "Vendor pipeline", body: "Shortlist → quote → booked, with sharp questions to ask and book-by dates for every category." },
   { icon: "🗣", title: "9 Indian languages", body: "Plans and invitations in Hindi, Telugu, Tamil, Kannada, Malayalam, Marathi, Bengali, Gujarati." },
-  { icon: "🛟", title: "Contingency built in", body: "Rain, vendor no-shows, overruns — each risk comes with a practical mitigation." },
 ];
 
 export default function HomePage() {
@@ -124,7 +124,7 @@ export default function HomePage() {
         {/* FEATURES */}
         <section className="py-20">
           <div className="mx-auto max-w-6xl px-5">
-            <h2 className="h-display text-center text-4xl font-semibold">Everything for the big day</h2>
+            <h2 className="h-display text-center text-4xl font-semibold">Plan it. Invite them. Track it. All in one place.</h2>
             <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map((f) => (
                 <li key={f.title} className="surface surface-hover p-6">

@@ -9,7 +9,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   // Next.js injects inline bootstrap scripts; dev also needs eval for HMR.
   `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"}`,
-  "connect-src 'self'",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
   "font-src 'self' data:",
   "frame-ancestors 'none'",
   "base-uri 'self'",

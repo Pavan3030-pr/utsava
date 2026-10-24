@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { generateObject } from "ai";
 import { jsonError, parseRequest, withTimeout } from "@/lib/api";
-import { AiNotConfiguredError, getModel } from "@/lib/ai/model";
+import { AiNotConfiguredError, FAST_OPTIONS, getModel } from "@/lib/ai/model";
 import { PARSER_SYSTEM, buildParsePrompt, sanitizeField } from "@/lib/ai/prompts";
 import { todayIso } from "@/lib/dates";
 import { ParseRequestSchema, ParsedIntakeSchema } from "@/lib/schemas";
@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
       temperature: 0,
       maxRetries: 1,
       abortSignal: withTimeout(req, 25_000),
+      providerOptions: FAST_OPTIONS,
     });
 
     // Clamp / clean model output before it reaches the form.

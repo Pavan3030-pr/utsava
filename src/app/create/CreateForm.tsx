@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatINRFull, parseINR } from "@/lib/format";
 import { EVENT_TYPES, EVENT_TYPE_META, IntakeSchema, LANGUAGES, type EventType, type LanguageCode } from "@/lib/schemas";
-import { createEvent } from "@/lib/storage";
+import { repo } from "@/lib/repo";
 
 interface FormState {
   type: EventType; title: string; date: string; guests: string; budget: string;
@@ -72,7 +72,9 @@ export function CreateForm() {
   const budgetNumber = parseINR(form.budget);
   const budgetInvalid = form.budget.trim() !== "" && budgetNumber === undefined;
 
-  const submit = (e: React.FormEvent) => {
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const candidate = {
       type: form.type,
@@ -93,8 +95,14 @@ export function CreateForm() {
       return;
     }
     setErrors([]);
-    const event = createEvent(result.data);
-    router.push(`/plan/${event.id}`);
+    setSaving(true);
+    try {
+      const event = await repo.create(result.data);
+      router.push(`/plan/${event.id}`);
+    } catch (err) {
+      setErrors([err instanceof Error ? err.message : "Couldn’t save your event"]);
+      setSaving(false);
+    }
   };
 
   return (
@@ -190,7 +198,7 @@ export function CreateForm() {
         )}
 
         <div className="flex justify-end">
-          <button type="submit" className="btn btn-primary h-12 px-8 text-base">Generate my plan ✦</button>
+          <button type="submit" disabled={saving} className="btn btn-primary h-12 px-8 text-base">{saving ? "Starting…" : "Generate my plan ✦"}</button>
         </div>
       </form>
     </div>

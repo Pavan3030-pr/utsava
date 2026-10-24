@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { generateObject } from "ai";
 import { jsonError, parseRequest, withTimeout } from "@/lib/api";
-import { AiNotConfiguredError, getModel } from "@/lib/ai/model";
+import { AiNotConfiguredError, FAST_OPTIONS, getModel } from "@/lib/ai/model";
 import { REFINE_SYSTEM, buildRefinePrompt } from "@/lib/ai/prompts";
 import { reconcileBudget } from "@/lib/budget";
 import { todayIso } from "@/lib/dates";
@@ -25,13 +25,14 @@ export async function POST(req: NextRequest) {
       temperature: 0.4,
       maxRetries: 1,
       abortSignal: withTimeout(req),
+      providerOptions: FAST_OPTIONS,
     });
-    // Never trust LLM arithmetic: reconcile before returning.
-    const { budget } = reconcileBudget(object.plan.budget, undefined);
-    return Response.json(
-      { ...object, plan: { ...object.plan, budget } },
-      { headers: { "Cache-Control": "no-store" } },
-    );
+    // Never trust LLM arithmetic: reconcile any revised budget before returning.
+    const updates = { ...object.updates };
+    if (updates.core) {
+      updates.core = { ...updates.core, budget: reconcileBudget(updates.core.budget, undefined).budget };
+    }
+    return Response.json({ ...object, updates }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     if (err instanceof AiNotConfiguredError) return jsonError(err.message, 503);
     console.error("[plan/refine]", err);
