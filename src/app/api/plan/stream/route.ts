@@ -1,29 +1,38 @@
 import type { NextRequest } from "next/server";
 import { streamObject } from "ai";
+import type { ZodTypeAny } from "zod";
 import { jsonError, parseRequest, withTimeout } from "@/lib/api";
-import { AiNotConfiguredError, getModel } from "@/lib/ai/model";
+import { AiNotConfiguredError, FAST_OPTIONS, getModel } from "@/lib/ai/model";
 import { PLANNER_SYSTEM, buildPlanPrompt } from "@/lib/ai/prompts";
 import { todayIso } from "@/lib/dates";
-import { IntakeSchema, PlanSchema } from "@/lib/schemas";
+import { IntakeSchema, PART_SCHEMAS, PartQuerySchema } from "@/lib/schemas";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-/** Streams a structured plan token-by-token so the UI can render it live. */
+/**
+ * Streams ONE slice of the plan (?part=core|schedule|ops). The browser fires all three
+ * in parallel, so wall-clock time ≈ the slowest slice instead of the sum of all three.
+ */
 export async function POST(req: NextRequest) {
-  const parsed = await parseRequest(req, IntakeSchema, { bucket: "stream", limit: 6, maxBytes: 8_000 });
+  const part = PartQuerySchema.safeParse(req.nextUrl.searchParams.get("part"));
+  if (!part.success) return jsonError("Invalid part.", 422);
+
+  // 3 slices per generation → allow ~6 generations / minute / IP
+  const parsed = await parseRequest(req, IntakeSchema, { bucket: "stream", limit: 18, maxBytes: 8_000 });
   if (!parsed.ok) return parsed.response;
 
   try {
     const result = streamObject({
       model: getModel(),
-      schema: PlanSchema,
+      schema: PART_SCHEMAS[part.data] as ZodTypeAny,
       system: PLANNER_SYSTEM,
-      prompt: buildPlanPrompt(parsed.data, todayIso()),
+      prompt: buildPlanPrompt(parsed.data, todayIso(), part.data),
       temperature: 0.6,
       maxRetries: 1,
       abortSignal: withTimeout(req),
-      onError: ({ error }) => console.error("[plan/stream]", error),
+      providerOptions: FAST_OPTIONS,
+      onError: ({ error }) => console.error(`[plan/stream:${part.data}]`, error),
     });
     return result.toTextStreamResponse({ headers: { "Cache-Control": "no-store" } });
   } catch (err) {

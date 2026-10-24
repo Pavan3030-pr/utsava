@@ -2,7 +2,7 @@
   "name": "utsava",
   "version": "1.0.0",
   "private": true,
-  "description": "Utsava — GenAI celebration & event planner for weddings, birthdays and community events",
+  "description": "Utsava \u2014 GenAI celebration & event planner for weddings, birthdays and community events",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -16,6 +16,7 @@
     "@ai-sdk/google": "^1.2.0",
     "@ai-sdk/openai": "^1.3.22",
     "@ai-sdk/react": "^1.2.12",
+    "@supabase/supabase-js": "^2.49.8",
     "ai": "^4.3.16",
     "next": "15.3.3",
     "react": "^19.1.0",

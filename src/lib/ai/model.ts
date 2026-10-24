@@ -26,3 +26,11 @@ export function getModel(): LanguageModel {
 export function isAiConfigured(): boolean {
   return Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.OPENAI_API_KEY);
 }
+
+/**
+ * Latency tuning: Gemini 2.5 "thinking" adds many seconds before the first token.
+ * Structured planning from a clear brief doesn't need it, so we switch it off.
+ */
+export const FAST_OPTIONS = {
+  google: { thinkingConfig: { thinkingBudget: 0 } },
+} as const;

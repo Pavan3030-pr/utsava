@@ -52,7 +52,9 @@ export function Copilot({ intake, plan, onApply }: { intake: Intake; plan: Store
       const parsed = RefineResultSchema.safeParse(data);
       if (!parsed.success) throw new Error("The AI returned an unexpected format. Please try again.");
 
-      const merged = mergeProgress(plain, parsed.data.plan);
+      const { core, schedule, ops } = parsed.data.updates;
+      const revised = { ...plain, ...core, ...schedule, ...ops };
+      const merged = mergeProgress(plain, revised);
       // The user may have just asked for a different budget, so don't snap back to the original.
       const next = normalizePlan(merged, { ...intake, budget: undefined }, new Date(), true);
       onApply(next);

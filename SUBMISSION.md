@@ -10,7 +10,8 @@ Type one sentence → Gemini streams a full budget, timeline, vendor playbook & 
 • Schema-first (Zod) → structured Gemini output → streamed to the UI
 • LLMs can't add, so a deterministic verifier reconciles every rupee
 • Prompt-injection-safe prompts, rate limiting, CSP, input validation
-• Stateless, containerised, deployable on Cloud Run
+• 3 parallel Gemini slices streamed live; Supabase + RLS; per-guest RSVP links; spend tracker
+• Containerised, deployable on Cloud Run
 • 40+ unit tests + accessible UI (ARIA tabs, live regions, reduced motion)
 
 📉 Before → after: removed a hard-coded demo fallback and dead login forms; added real streaming, verification and a revising copilot.
