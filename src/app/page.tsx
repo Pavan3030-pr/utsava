@@ -1,138 +1,157 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
+import { LogoMark, SiteHeader } from "@/components/Logo";
+
+const tilt = (deg: string, delay = "0s") => ({ "--r": deg, animationDelay: delay }) as CSSProperties;
+
+const EXAMPLES = [
+  "200-guest Telugu wedding in Hyderabad, 25 lakhs, traditional with a modern sangeet",
+  "Aarav's 5th birthday, dinosaur theme, 40 guests, Pune, 60k",
+  "Ganesh Chaturthi for our 120-flat society in Mumbai",
+];
+
+const PIPELINE = [
+  { n: "1", title: "Understand", body: "Gemini turns a sentence into a structured brief: type, date, guests, budget, city, language." },
+  { n: "2", title: "Plan live", body: "Budget, schedule, timeline, vendors and themes stream onto your screen as they are written." },
+  { n: "3", title: "Verify", body: "A deterministic checker reconciles every rupee so the budget always adds up — no LLM arithmetic." },
+  { n: "4", title: "Refine", body: "Tell the copilot “cut 15%” or “add a vegan menu” and watch the whole plan adapt, progress preserved." },
+];
+
+const FEATURES = [
+  { icon: "₹", title: "Budgets that add up", body: "Realistic INR splits for your city and guest count, with a saving tip on every line." },
+  { icon: "🗓", title: "Real-dated timeline", body: "Milestones anchored to your date, exportable to Google or Apple Calendar in one click." },
+  { icon: "🧾", title: "Vendor playbook", body: "Sharp questions to ask, honest price ranges and book-by deadlines for each vendor." },
+  { icon: "🎨", title: "Mood-board themes", body: "Colour palettes and décor ideas per theme — rendered instantly, no image waiting." },
+  { icon: "🗣", title: "9 Indian languages", body: "Plans and invitations in Hindi, Telugu, Tamil, Kannada, Malayalam, Marathi, Bengali, Gujarati." },
+  { icon: "🛟", title: "Contingency built in", body: "Rain, vendor no-shows, overruns — each risk comes with a practical mitigation." },
+];
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#1a73e8] to-[#0d47a1] flex items-center justify-center text-white font-bold text-lg shadow-sm">
-              उ
-            </div>
-            <span className="text-xl font-semibold tracking-tight text-gray-900">Utsava</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
-            <a href="#features" className="hover:text-[#1a73e8] transition-colors">Features</a>
-            <a href="#how" className="hover:text-[#1a73e8] transition-colors">How it works</a>
-            <a href="#culture" className="hover:text-[#1a73e8] transition-colors">Indian Roots</a>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="hidden sm:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">Sign in</Link>
-            <Link href="/signup" className="inline-flex items-center justify-center h-10 px-5 rounded-full bg-[#1a73e8] text-white text-sm font-medium shadow-sm hover:bg-[#1557b0] transition-colors">Get started free</Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1">
+    <div className="ambient">
+      <SiteHeader />
+      <main id="main">
+        {/* HERO */}
         <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50 via-transparent to-transparent pointer-events-none" />
-          <div className="max-w-6xl mx-auto px-6 pt-20 pb-24 md:pt-28 md:pb-32">
-            <div className="max-w-3xl mx-auto text-center">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-[#1a73e8] text-xs font-medium mb-6 border border-blue-100">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1a73e8] animate-pulse" />
-                GenAI-powered • Built for Indian celebrations
-              </div>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.15]">
-                Plan every celebration<br /><span className="text-[#1a73e8]">with quiet intelligence</span>
+          <div className="rangoli pointer-events-none absolute -right-24 -top-24 h-[28rem] w-[28rem] spin-slow opacity-70" aria-hidden="true" />
+          <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-16 lg:grid-cols-[1.1fr_0.9fr] lg:pt-24">
+            <div className="fade-up">
+              <span className="chip"><span aria-hidden="true">✦</span> Powered by Gemini · Built for Indian celebrations</span>
+              <h1 className="h-display mt-6 text-5xl font-semibold leading-[1.05] sm:text-6xl">
+                Every celebration,<br />
+                <span className="grad-text">planned in a sentence.</span>
               </h1>
-              <p className="mt-6 text-lg text-gray-600 max-w-xl mx-auto leading-relaxed">
-                From intimate birthdays to grand Indian weddings — Utsava turns your ideas into budgets, timelines, vendor checklists and personalized themes in minutes.
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-soft">
+                Tell Utsava what you’re celebrating. Watch a complete budget, timeline, vendor checklist and set of themes write themselves — then refine it by simply asking.
               </p>
-              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link href="/signup" className="w-full sm:w-auto inline-flex items-center justify-center h-12 px-8 rounded-full bg-[#1a73e8] text-white font-medium shadow-md hover:bg-[#1557b0] hover:shadow-lg transition-all">Start planning free</Link>
-                <a href="#how" className="w-full sm:w-auto inline-flex items-center justify-center h-12 px-8 rounded-full border border-gray-200 bg-white text-gray-700 font-medium hover:bg-gray-50 transition-colors">See how it works</a>
-              </div>
-              <p className="mt-6 text-sm text-gray-500">No credit card • Works for weddings, birthdays & community events</p>
-            </div>
-          </div>
-        </section>
 
-        <section id="features" className="py-20 bg-white border-t border-gray-100">
-          <div className="max-w-6xl mx-auto px-6">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl font-semibold text-gray-900 tracking-tight">Everything you need to celebrate beautifully</h2>
-              <p className="mt-4 text-gray-600">One intelligent workspace for budgets, timelines, vendors and ideas — designed with the warmth of Indian traditions.</p>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[
-                { title: "Smart Budget Builder", desc: "AI allocates realistic budgets in INR across venue, catering, decor, attire and more.", icon: "\u20b9" },
-                { title: "Living Timeline", desc: "Day-by-day or week-by-week milestones with rituals, vendor deadlines and guest reminders.", icon: "\ud83d\udcc5" },
-                { title: "Vendor Checklist", desc: "Category-wise actionable lists with cultural notes for pandit, mehendi, sangeet, caterer and more.", icon: "\u2713" },
-                { title: "Personalized Themes", desc: "Mood boards and ideas that respect regional styles \u2014 South Indian, North Indian, fusion or modern.", icon: "\ud83c\udfa8" },
-                { title: "Conversational AI", desc: "Chat to refine any part of the plan. Make the sangeet more traditional or reduce budget by 15%.", icon: "\ud83d\udcac" },
-                { title: "Export & Share", desc: "Beautiful PDF plans and shareable links for family and vendors.", icon: "\ud83d\udcc4" },
-              ].map((f) => (
-                <div key={f.title} className="card-premium p-6 hover:-translate-y-0.5 transition-transform">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl mb-4">{f.icon}</div>
-                  <h3 className="text-lg font-semibold text-gray-900">{f.title}</h3>
-                  <p className="mt-2 text-sm text-gray-600 leading-relaxed">{f.desc}</p>
+              <form action="/create" method="get" className="surface mt-8 max-w-xl p-2.5">
+                <label htmlFor="q" className="sr-only">Describe your celebration</label>
+                <textarea
+                  id="q" name="q" rows={2} maxLength={800} required minLength={5}
+                  placeholder="e.g. 200-guest Telugu wedding in Hyderabad next December, 25 lakhs…"
+                  className="w-full resize-none rounded-xl bg-transparent px-3 py-2 text-base outline-none placeholder:text-[#9a8b7c]"
+                />
+                <div className="flex items-center justify-between gap-3 px-1 pb-1">
+                  <span className="text-xs text-soft">No sign-up needed</span>
+                  <button type="submit" className="btn btn-primary">Plan it with AI →</button>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
+              </form>
 
-        <section id="how" className="py-20 bg-[#fafafa]">
-          <div className="max-w-6xl mx-auto px-6">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl font-semibold text-gray-900 tracking-tight">From idea to plan in three steps</h2>
+              <div className="mt-5 flex flex-wrap gap-2" aria-label="Try an example">
+                {EXAMPLES.map((e) => (
+                  <Link key={e} href={`/create?q=${encodeURIComponent(e)}`} className="rounded-full border border-line bg-white px-3.5 py-1.5 text-xs text-soft transition hover:border-kumkum hover:text-kumkum">
+                    {e.length > 46 ? e.slice(0, 44) + "…" : e}
+                  </Link>
+                ))}
+              </div>
             </div>
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                { step: "01", title: "Describe your celebration", desc: "Tell Utsava the type of event, date, guest count, budget range and any cultural preferences." },
-                { step: "02", title: "AI crafts your plan", desc: "Receive a complete budget, timeline, checklist and theme ideas tailored to Indian traditions." },
-                { step: "03", title: "Refine & celebrate", desc: "Chat to adjust anything, export the PDF, share with family and execute with confidence." },
-              ].map((s) => (
-                <div key={s.step}>
-                  <div className="text-5xl font-bold text-blue-100 mb-4">{s.step}</div>
-                  <h3 className="text-xl font-semibold text-gray-900">{s.title}</h3>
-                  <p className="mt-3 text-gray-600 leading-relaxed">{s.desc}</p>
+
+            {/* floating illustrative preview */}
+            <div className="relative mx-auto hidden h-[30rem] w-full max-w-md lg:block" aria-hidden="true">
+              <div className="surface float absolute left-0 top-4 w-72 p-5" style={tilt("-3deg")}>
+                <div className="text-xs font-semibold uppercase tracking-wider text-saffron-dark">Budget · ₹25 L</div>
+                <div className="mt-4 flex items-center gap-4">
+                  <svg viewBox="0 0 36 36" className="h-20 w-20 -rotate-90">
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="#f6ead7" strokeWidth="6" />
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="#b4234e" strokeWidth="6" strokeDasharray="30 88" />
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="#f59e0b" strokeWidth="6" strokeDasharray="24 88" strokeDashoffset="-30" />
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="#0f766e" strokeWidth="6" strokeDasharray="14 88" strokeDashoffset="-54" />
+                  </svg>
+                  <ul className="space-y-1.5 text-xs text-soft">
+                    <li><span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-kumkum" />Venue</li>
+                    <li><span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-saffron" />Catering</li>
+                    <li><span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-leaf" />Décor</li>
+                  </ul>
                 </div>
+              </div>
+              <div className="surface float absolute right-0 top-40 w-64 p-5" style={tilt("3deg", "1s")}>
+                <div className="text-xs font-semibold uppercase tracking-wider text-leaf">Timeline</div>
+                <ol className="mt-3 space-y-2.5 text-sm">
+                  {["D-90 · Book venue", "D-60 · Menu tasting", "D-30 · Send invites"].map((t, i) => (
+                    <li key={t} className="flex items-center gap-2.5">
+                      <span className={`h-2.5 w-2.5 rounded-full ${i === 0 ? "bg-leaf" : "bg-line"}`} />{t}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              <div className="surface float absolute bottom-0 left-8 w-72 p-5" style={tilt("-1.5deg", "2s")}>
+                <div className="text-xs font-semibold uppercase tracking-wider text-kumkum">AI Copilot</div>
+                <p className="mt-2 rounded-xl bg-rose-soft px-3 py-2 text-sm">Cut the budget by 15% but keep the sangeet.</p>
+                <p className="mt-2 rounded-xl bg-cream px-3 py-2 text-sm">Done — saved ₹3.7 L on décor & photography.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* PIPELINE */}
+        <section className="border-y border-line bg-white/70 py-20">
+          <div className="mx-auto max-w-6xl px-5">
+            <h2 className="h-display text-center text-4xl font-semibold">Not a template. A planning engine.</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-center text-soft">Four stages, each doing something a static form can’t.</p>
+            <ol className="mt-12 grid gap-5 md:grid-cols-4">
+              {PIPELINE.map((s) => (
+                <li key={s.n} className="surface surface-hover p-6">
+                  <span className="h-display text-4xl font-semibold text-saffron">{s.n}</span>
+                  <h3 className="mt-3 text-lg font-semibold">{s.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-soft">{s.body}</p>
+                </li>
               ))}
-            </div>
+            </ol>
           </div>
         </section>
 
-        <section id="culture" className="py-20 bg-white border-t border-gray-100">
-          <div className="max-w-6xl mx-auto px-6">
-            <div className="grid md:grid-cols-2 gap-12 items-center">
-              <div>
-                <h2 className="text-3xl font-semibold text-gray-900 tracking-tight">Built with Indian celebrations in mind</h2>
-                <p className="mt-4 text-gray-600 leading-relaxed">
-                  Utsava understands the multi-day nature of Indian weddings, the importance of rituals, regional variations and the way families plan together.
-                </p>
-                <ul className="mt-6 space-y-3 text-gray-700">
-                  <li className="flex items-start gap-3"><span className="mt-1 w-5 h-5 rounded-full bg-blue-100 text-[#1a73e8] flex items-center justify-center text-xs font-bold">\u2713</span> Multi-event wedding support</li>
-                  <li className="flex items-start gap-3"><span className="mt-1 w-5 h-5 rounded-full bg-blue-100 text-[#1a73e8] flex items-center justify-center text-xs font-bold">\u2713</span> Regional styles & ritual awareness</li>
-                  <li className="flex items-start gap-3"><span className="mt-1 w-5 h-5 rounded-full bg-blue-100 text-[#1a73e8] flex items-center justify-center text-xs font-bold">\u2713</span> Budgeting in INR with realistic ranges</li>
-                </ul>
-              </div>
-              <div className="card-premium p-8 bg-gradient-to-br from-blue-50 to-white">
-                <div className="text-sm font-medium text-[#1a73e8] mb-2">Sample prompt</div>
-                <p className="text-gray-800 italic leading-relaxed">
-                  \u201cPlan a 200-guest Telugu wedding in Hyderabad next December. Budget 25 lakhs. Traditional with modern sangeet.\u201d
-                </p>
-              </div>
-            </div>
+        {/* FEATURES */}
+        <section className="py-20">
+          <div className="mx-auto max-w-6xl px-5">
+            <h2 className="h-display text-center text-4xl font-semibold">Everything for the big day</h2>
+            <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {FEATURES.map((f) => (
+                <li key={f.title} className="surface surface-hover p-6">
+                  <span aria-hidden="true" className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gold-soft text-xl">{f.icon}</span>
+                  <h3 className="mt-4 text-lg font-semibold">{f.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-soft">{f.body}</p>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
-        <section className="py-20 bg-[#1a73e8]">
-          <div className="max-w-3xl mx-auto px-6 text-center">
-            <h2 className="text-3xl font-semibold text-white tracking-tight">Ready to plan your next celebration?</h2>
-            <p className="mt-4 text-blue-100">Join families and organizers who use Utsava to turn stress into joy.</p>
-            <Link href="/signup" className="mt-8 inline-flex items-center justify-center h-12 px-8 rounded-full bg-white text-[#1a73e8] font-medium shadow-lg hover:bg-blue-50 transition-colors">Create your free account</Link>
+        {/* CTA */}
+        <section className="px-5 pb-20">
+          <div className="relative mx-auto max-w-4xl overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#c2410c] via-kumkum to-[#7c1d6f] px-8 py-14 text-center text-white">
+            <div className="rangoli absolute inset-0 opacity-30" aria-hidden="true" />
+            <h2 className="h-display relative text-4xl font-semibold">Your celebration deserves a plan.</h2>
+            <p className="relative mx-auto mt-3 max-w-lg text-white/90">Free. No account. Your plans stay private in your browser.</p>
+            <Link href="/create" className="btn relative mt-8 bg-white text-kumkum-dark hover:bg-cream">Start planning →</Link>
           </div>
         </section>
       </main>
 
-      <footer className="bg-white border-t border-gray-100 py-10">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#1a73e8] to-[#0d47a1] flex items-center justify-center text-white text-sm font-bold">उ</div>
-            <span className="font-semibold text-gray-900">Utsava</span>
-          </div>
-          <p className="text-sm text-gray-500">\u00a9 {new Date().getFullYear()} Utsava. Built with care for Indian celebrations.</p>
+      <footer className="border-t border-line py-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-5 text-sm text-soft sm:flex-row">
+          <span className="flex items-center gap-2"><LogoMark size={26} /> Utsava (उत्सव) — festival, celebration</span>
+          <span>AI-generated suggestions — always confirm prices with vendors.</span>
         </div>
       </footer>
     </div>
