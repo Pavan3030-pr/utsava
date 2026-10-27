@@ -74,3 +74,10 @@ export async function parseRequest<T>(
 export function withTimeout(req: NextRequest, ms = 55_000): AbortSignal {
   return AbortSignal.any([req.signal, AbortSignal.timeout(ms)]);
 }
+
+/** Rate-limit guard for GET endpoints (public read-only data proxies). Returns a Response when blocked. */
+export async function guardGet(req: NextRequest, bucket: string, limit: number): Promise<Response | null> {
+  const rl = await checkRateLimit(`${bucket}:${clientIp(req)}`, { limit, windowMs: 60_000 });
+  if (rl.ok) return null;
+  return jsonError("Too many requests — please wait a moment and try again.", 429, { "Retry-After": String(rl.retryAfterSec) });
+}

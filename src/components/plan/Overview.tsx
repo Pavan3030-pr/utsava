@@ -3,6 +3,7 @@ import { formatINR } from "@/lib/format";
 import { checklistProgress, upcomingMilestones } from "@/lib/plan-utils";
 import type { Intake, PartialPlan } from "@/lib/schemas";
 import { Panel, Waiting, list } from "./ui";
+import { WeatherCard } from "./WeatherCard";
 
 function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone: string }) {
   return (
@@ -41,6 +42,10 @@ export function Overview({ plan, intake, streaming }: { plan: PartialPlan; intak
             ))}
           </ul>
         </Panel>
+      )}
+
+      {!streaming && intake.date && intake.location && daysBetween(todayIso(), intake.date) >= 0 && (
+        <WeatherCard city={intake.location} date={intake.date} />
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">

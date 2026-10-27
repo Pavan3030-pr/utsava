@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { addGuests, listGuests, removeGuest } from "@/lib/guests-db";
-import { eventNames, inviteMessage, parseBulkGuests, rsvpLink, summarizeRsvps, whatsappUrl } from "@/lib/guests";
+import { eventNames, guestsToCsv, guestsWaiting, inviteMessage, parseBulkGuests, rsvpLink, summarizeRsvps, whatsappUrl } from "@/lib/guests";
 import type { Guest, StoredPlan } from "@/lib/schemas";
 import { CLOUD_ENABLED } from "@/lib/supabase/client";
 import { Panel } from "./ui";
@@ -20,6 +20,7 @@ export function Guests({ eventId, plan, plannedGuests }: { eventId: string; plan
   const [selected, setSelected] = useState<string[]>(events);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState("");
+  const [onlyWaiting, setOnlyWaiting] = useState(false);
 
   const refresh = useCallback(async () => {
     try { setGuests(await listGuests(eventId)); setError(""); }
@@ -53,6 +54,15 @@ export function Guests({ eventId, plan, plannedGuests }: { eventId: string; plan
   const link = (g: Guest) => rsvpLink(window.location.origin, g.token);
   const copy = async (g: Guest) => {
     try { await navigator.clipboard.writeText(link(g)); setCopied(g.id); setTimeout(() => setCopied(""), 1800); } catch { /* clipboard blocked */ }
+  };
+  const waiting = guestsWaiting(guests);
+  const visible = onlyWaiting ? waiting : guests;
+  const exportCsv = () => {
+    const blob = new Blob(["\uFEFF" + guestsToCsv(guests, events)], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "utsava-guest-list.csv"; a.click();
+    URL.revokeObjectURL(url);
   };
   const statusOf = (g: Guest, e: string) => g.rsvps.find((r) => r.event === e);
 
@@ -106,11 +116,20 @@ export function Guests({ eventId, plan, plannedGuests }: { eventId: string; plan
       {error && <p role="alert" className="rounded-2xl bg-rose-soft p-4 text-sm text-kumkum-dark">{error}</p>}
 
       <Panel kicker={`${guests.length} guests`} title="Guest list & invitations">
+        {guests.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={exportCsv}>Export CSV</button>
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <input type="checkbox" className="accent-[#b4234e]" checked={onlyWaiting} onChange={(e) => setOnlyWaiting(e.target.checked)} />
+              Only guests who haven’t replied ({waiting.length})
+            </label>
+          </div>
+        )}
         {loading ? <div className="shimmer h-24" aria-busy="true" /> : guests.length === 0 ? (
           <p className="text-sm text-soft">No guests yet. Paste a list above — each guest gets their own personal RSVP link.</p>
         ) : (
           <ul className="divide-y divide-line">
-            {guests.map((g) => (
+            {visible.map((g) => (
               <li key={g.id} className="flex flex-wrap items-center gap-3 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{g.name} {g.group && <span className="ml-1 text-xs font-medium text-soft">· {g.group}</span>}</p>

@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { formatINRFull, parseINR } from "@/lib/format";
 import type { Ledger, PartialPlan, ShortlistItem, ShortlistStatus } from "@/lib/schemas";
+import type { PlaceResult } from "@/lib/place-categories";
 import { Panel, Waiting, list } from "./ui";
+import { VendorFinder } from "./VendorFinder";
 
 const STAGES: { id: ShortlistStatus; label: string; tone: string }[] = [
   { id: "shortlisted", label: "Shortlisted", tone: "bg-cream" },
@@ -33,6 +35,11 @@ export function Vendors({ plan, streaming, ledger, city, onLedger }: {
   };
   const setStatus = (id: string, status: ShortlistStatus) =>
     ledger && onLedger && onLedger({ ...ledger, shortlist: ledger.shortlist.map((s) => (s.id === id ? { ...s, status } : s)) });
+  const shortlistedNames = new Set((ledger?.shortlist ?? []).map((s) => s.name.toLowerCase()));
+  const addPlace = (category: string, p: PlaceResult) => {
+    if (!ledger || !onLedger || shortlistedNames.has(p.name.toLowerCase())) return;
+    onLedger({ ...ledger, shortlist: [...ledger.shortlist, { id: uid(), category, name: p.name.slice(0, 120), phone: p.phone, status: "shortlisted", notes: [p.address, p.website].filter(Boolean).join(" · ").slice(0, 300) || undefined }] });
+  };
   const del = (id: string) => ledger && onLedger && onLedger({ ...ledger, shortlist: ledger.shortlist.filter((s) => s.id !== id) });
 
   return (
@@ -58,6 +65,9 @@ export function Vendors({ plan, streaming, ledger, city, onLedger }: {
                   href={`https://www.google.com/maps/search/${encodeURIComponent(`${v.category} ${city ?? ""}`.trim())}`}>
                   Find {v.category.toLowerCase()} {city ? `in ${city}` : "near you"} →<span className="sr-only"> (opens Google Maps in a new tab)</span>
                 </a>
+              )}
+              {v.category && city && ledger && onLedger && !streaming && (
+                <VendorFinder category={v.category} city={city} shortlisted={shortlistedNames} onAdd={(p) => addPlace(v.category as string, p)} />
               )}
             </article>
           ))}

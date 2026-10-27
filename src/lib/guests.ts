@@ -73,3 +73,28 @@ export function inviteMessage(opts: { guestName: string; eventTitle: string; lin
 export function whatsappUrl(phone: string | undefined, text: string): string {
   return `https://wa.me/${phone ?? ""}?text=${encodeURIComponent(text)}`;
 }
+
+/** Spreadsheet-safe CSV (neutralises =,+,-,@ formula injection; quotes commas/quotes/newlines). */
+export function csvCell(value: string | number | undefined): string {
+  let s = String(value ?? "").replace(/\r?\n/g, " ");
+  if (/^[=+\-@\t]/.test(s)) s = `'${s}`;
+  return /[",]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+export function guestsToCsv(guests: Guest[], events: string[]): string {
+  const header = ["Name", "Phone", "Group", ...events.flatMap((e) => [`${e} RSVP`, `${e} heads`])];
+  const rows = guests.map((g) => [
+    g.name, g.phone ?? "", g.group ?? "",
+    ...events.flatMap((e) => {
+      if (!g.invited.includes(e)) return ["not invited", ""];
+      const r = g.rsvps.find((x) => x.event === e);
+      return r ? [r.status, r.status === "yes" ? r.partySize : ""] : ["waiting", ""];
+    }),
+  ]);
+  return [header, ...rows].map((r) => r.map(csvCell).join(",")).join("\r\n") + "\r\n";
+}
+
+/** Guests who haven't answered for at least one event they're invited to. */
+export function guestsWaiting(guests: Guest[]): Guest[] {
+  return guests.filter((g) => g.invited.some((e) => !g.rsvps.some((r) => r.event === e)));
+}

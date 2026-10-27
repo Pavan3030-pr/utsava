@@ -10,7 +10,7 @@ const EXAMPLES = [
 const STATS = [
   { v: "4", l: "AI planners writing in parallel" },
   { v: "9", l: "Indian languages" },
-  { v: "90+", l: "automated tests" },
+  { v: "110+", l: "automated tests" },
   { v: "0", l: "sign-ups to start" },
 ];
 
@@ -35,6 +35,7 @@ const COMPARE = [
   ["Plans and invitations in 9 Indian languages", false, true],
   ["Budget maths verified by code, not guessed", false, true],
   ["Ask AI to “cut 15%” and the plan rewrites itself", false, true],
+  ["Real nearby vendors with phone numbers, and real weather for your date", false, true],
   ["Planned-vs-actual spend with overspend alerts", true, true],
 ] as const;
 

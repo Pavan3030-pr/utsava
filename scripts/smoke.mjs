@@ -29,6 +29,10 @@ await check("cross-origin POST is blocked", async () => {
   const r = await fetch(`${base}/api/plan/parse`, { method: "POST", headers: { Origin: "https://evil.example" }, body: "{}" });
   must(r.status === 403, `status ${r.status}`);
 });
+await check("places and weather APIs validate input", async () => {
+  const a = await fetch(`${base}/api/places`); must(a.status === 422, `places ${a.status}`);
+  const b = await fetch(`${base}/api/weather?city=x&date=nope`); must(b.status === 422, `weather ${b.status}`);
+});
 await check("unknown RSVP token is a clean 404", async () => {
   const r = await fetch(`${base}/api/rsvp/00000000-0000-4000-8000-000000000000`);
   must([404, 503].includes(r.status), `status ${r.status}`);

@@ -36,6 +36,13 @@ flowchart LR
 * **Stateless server;** all state in Postgres (or local fallback).
 * **Security:** RLS on every table; public RSVP route is token-scoped, exposes only that guest's events, rate-limited, validated; prompt delimiters + sanitising; CSP + security headers; service key server-only.
 
+## Real data (no paid keys)
+| Feature | Source | Notes |
+|---|---|---|
+| Real nearby vendors & venues with phone, website, address, distance | OpenStreetMap via Overpass (geocoded with Open-Meteo) | One-click “+ Shortlist” into your vendor pipeline. Cached 6 h, rate-limited, attribution shown. |
+| Weather for your event date | Open-Meteo | Live forecast ≤ 16 days out; otherwise the same dates over the last 5 years (rain probability, heat, cold) with concrete advice. |
+| Guest list export | Your own data | Spreadsheet-safe CSV + “who hasn’t replied” filter for WhatsApp nudges. |
+
 ## Production hardening
 | Concern | What Utsava does |
 |---|---|
@@ -83,4 +90,4 @@ gcloud run deploy utsava --source . --region asia-south1 --allow-unauthenticated
 `NEXT_PUBLIC_*` are baked at build time — with `--source .` Cloud Build reads them from the env at build; on Vercel add them before deploying.
 
 ## Tests
-91 tests. `tests/` covers save-queue ordering, Redis/in-memory rate limiting, origin checks, model fallback, budget reconciliation, INR parsing, dates, ICS (RFC 5545), rate limiter, prompt-injection, schema validation, multi-event RSVP maths, spend ledger, and a regression for progress preservation.
+113 tests. `tests/` covers save-queue ordering, Redis/in-memory rate limiting, origin checks, model fallback, budget reconciliation, INR parsing, dates, ICS (RFC 5545), rate limiter, prompt-injection, schema validation, multi-event RSVP maths, spend ledger, and a regression for progress preservation.
