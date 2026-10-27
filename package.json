@@ -2,7 +2,7 @@
   "name": "utsava",
   "version": "1.0.0",
   "private": true,
-  "description": "Utsava \u2014 GenAI celebration & event planner for weddings, birthdays and community events",
+  "description": "Utsava — GenAI celebration & event planner for weddings, birthdays and community events",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -19,7 +19,7 @@
     "@ai-sdk/react": "^1.2.12",
     "@supabase/supabase-js": "^2.49.8",
     "ai": "^4.3.16",
-    "next": "15.3.3",
+    "next": "^15.5.28",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zod": "^3.25.28"
@@ -31,7 +31,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.3.3",
+    "eslint-config-next": "^15.5.28",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^3.0.0"
