@@ -10,7 +10,7 @@ Researched against Zola, The Knot, Joy and WedMeGood. They all share six pillars
 | Pillar | Utsava |
 |---|---|
 | Planning | Gemini writes budget, schedule, timeline, vendors, themes, risks, invitation — 9 Indian languages |
-| Speed | 3 parallel Gemini slices + thinking disabled + live streaming (see below) |
+| Speed | 4 balanced parallel Gemini slices + thinking disabled + live streaming + one-click start (see below) |
 | Guests | Multi-event guest × event matrix, paste-import, groups |
 | RSVPs | Unique personal link per guest → public RSVP page → responses live in dashboard |
 | Money | Verified budget (code reconciles LLM maths) + planned-vs-actual spend tracker with dues & overspend alerts |
@@ -37,13 +37,25 @@ flowchart LR
 * **Security:** RLS on every table; public RSVP route is token-scoped, exposes only that guest's events, rate-limited, validated; prompt delimiters + sanitising; CSP + security headers; service key server-only.
 
 ## Response time
-| | v1 | v2 |
+| | v1 | v3 |
 |---|---|---|
-| Generation | 1 call, ~5-6k tokens, thinking on | 3 parallel calls (~2k tokens each), thinking off |
-| First visible content | after model "thinks" (several s) | ≈ first tokens (~1 s) |
-| Copilot edit | rewrites whole plan | returns only changed slices |
-| Parse (intake) | thinking on | thinking off |
-Design target: full plan in roughly a third of the v1 time. *Measure on your deployment — numbers depend on model load and region.*
+| Generation | 1 call, ~5-6k tokens, thinking on | **4 balanced parallel calls (~1k tokens each)**, thinking off, ≤20-word strings |
+| Landing → plan | parse → review → click Generate | **one click**: parse and start automatically |
+| First visible content | after model "thinks" | first tokens (~1 s) |
+| Copilot edit | rewrites whole plan | returns only the changed slices |
+| Rendering | re-render per token | memoised + `useDeferredValue` |
+| Hosting | — | `vercel.json` pins Mumbai (`bom1`); Cloud Run `asia-south1`; Supabase Mumbai |
+
+**Measure it yourself** (real numbers for your LinkedIn post):
+```bash
+npm run dev            # terminal 1
+npm run bench          # terminal 2 — prints first-byte + completion per slice and wall-clock total
+BASE_URL=https://your-app.vercel.app npm run bench   # against production
+```
+Speed/quality dial: `GEMINI_MODEL=gemini-2.5-flash-lite` is faster still, at some cost in richness.
+
+## Design system
+Fraunces (soft, optically-sized display) + Inter, with matched Noto fallbacks for Devanagari, Telugu, Tamil, Kannada, Malayalam, Bengali and Gujarati (loaded only when those scripts appear). One container width, a fluid type scale, an 8-pt rhythm, tabular numerals for money, WCAG-AA contrast (RSVP header has a contrast scrim over any theme palette), reduced-motion support.
 
 ## Run
 ```bash

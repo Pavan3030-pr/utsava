@@ -27,82 +27,92 @@ export function CreateForm() {
   const autoRan = useRef(false);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((f) => ({ ...f, [key]: value }));
-
-  const understand = useCallback(async (text: string) => {
-    if (text.trim().length < 5) return;
-    setParsing(true);
-    setStatus("Reading your idea…");
-    try {
-      const res = await fetch("/api/plan/parse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Something went wrong");
-      const i = data.intake ?? {};
-      setForm((f) => ({
-        ...f,
-        type: i.type ?? f.type,
-        title: i.title ?? f.title,
-        date: i.date ?? f.date,
-        guests: i.guests ? String(i.guests) : f.guests,
-        budget: i.budget ? String(i.budget) : f.budget,
-        location: i.location ?? f.location,
-        style: i.style ?? f.style,
-        notes: i.notes ?? f.notes,
-        language: i.language ?? f.language,
-      }));
-      setFilled(true);
-      setStatus("Got it — I filled in the details below. Tweak anything, then generate.");
-    } catch (e) {
-      setStatus(e instanceof Error ? e.message : "Couldn't understand that — please use the form.");
-    } finally {
-      setParsing(false);
-    }
-  }, []);
-
-  // Arriving from the landing page with ?q=… → parse immediately (once).
-  useEffect(() => {
-    if (autoRan.current || !params.get("q")) return;
-    autoRan.current = true;
-    void understand(params.get("q") ?? "");
-  }, [params, understand]);
-
-  const budgetNumber = parseINR(form.budget);
-  const budgetInvalid = form.budget.trim() !== "" && budgetNumber === undefined;
-
+  const formRef = useRef(form);
+  formRef.current = form;
   const [saving, setSaving] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  /** Validate → save → open the plan page (generation starts there). */
+  const launch = useCallback(async (f: FormState): Promise<boolean> => {
+    const budgetNum = parseINR(f.budget);
     const candidate = {
-      type: form.type,
-      title: form.title,
-      date: form.date || undefined,
-      guests: form.guests ? Number(form.guests) : undefined,
-      budget: budgetNumber,
-      location: form.location || undefined,
-      style: form.style || undefined,
-      notes: form.notes || undefined,
-      language: form.language,
+      type: f.type, title: f.title, date: f.date || undefined, guests: f.guests ? Number(f.guests) : undefined,
+      budget: budgetNum, location: f.location || undefined, style: f.style || undefined,
+      notes: f.notes || undefined, language: f.language,
     };
     const result = IntakeSchema.safeParse(candidate);
-    if (!result.success || budgetInvalid) {
+    const badBudget = f.budget.trim() !== "" && budgetNum === undefined;
+    if (!result.success || badBudget) {
       const msgs = result.success ? [] : result.error.issues.map((i) => `${i.path.join(".") || "form"}: ${i.message}`);
-      if (budgetInvalid) msgs.push("budget: try a number like 1500000, 15L or 1.5 crore");
+      if (badBudget) msgs.push("budget: try a number like 1500000, 15L or 1.5 crore");
       setErrors(msgs);
-      return;
+      return false;
     }
     setErrors([]);
     setSaving(true);
     try {
       const event = await repo.create(result.data);
       router.push(`/plan/${event.id}`);
+      return true;
     } catch (err) {
       setErrors([err instanceof Error ? err.message : "Couldn’t save your event"]);
       setSaving(false);
+      return false;
     }
+  }, [router]);
+
+  const understand = useCallback(async (text: string, auto = false) => {
+    if (text.trim().length < 5) return;
+    setParsing(true);
+    setStatus(auto ? "Understanding your idea…" : "Reading your idea…");
+    try {
+      const res = await fetch("/api/plan/parse", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Something went wrong");
+      const i = data.intake ?? {};
+      const base = formRef.current;
+      const type: EventType = i.type ?? base.type;
+      const next: FormState = {
+        ...base, type,
+        title: i.title ?? base.title,
+        date: i.date ?? base.date,
+        guests: i.guests ? String(i.guests) : base.guests,
+        budget: i.budget ? String(i.budget) : base.budget,
+        location: i.location ?? base.location,
+        style: i.style ?? base.style,
+        notes: i.notes ?? base.notes,
+        language: i.language ?? base.language,
+      };
+      setForm(next);
+      setFilled(true);
+      if (auto) {
+        setStatus("Got it — starting your plan…");
+        const ok = await launch({ ...next, title: next.title.trim() || EVENT_TYPE_META[type].label });
+        if (!ok) setStatus("I filled in what I could — please check the details below.");
+        return;
+      }
+      setStatus("Got it — I filled in the details below. Tweak anything, then generate.");
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Couldn’t understand that — please use the form.");
+    } finally {
+      setParsing(false);
+    }
+  }, [launch]);
+
+  // Arriving from the landing page with ?q=…&go=1 → understand AND start, no second click.
+  useEffect(() => {
+    if (autoRan.current || !params.get("q")) return;
+    autoRan.current = true;
+    void understand(params.get("q") ?? "", params.get("go") === "1");
+  }, [params, understand]);
+
+  const budgetNumber = parseINR(form.budget);
+  const budgetInvalid = form.budget.trim() !== "" && budgetNumber === undefined;
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void launch(form);
   };
 
   return (

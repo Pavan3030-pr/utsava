@@ -21,7 +21,7 @@ QUALITY RULES
 4. Checklist: 4-6 categories, 3-6 concrete tasks each, all completed=false. Include guest comfort and accessibility (elders, wheelchair access, dietary needs).
 5. Vendors: 6-10 relevant categories with sharp questions to ask and honest INR ranges.
 6. Risks: 3-4 realistic risks (weather, vendor no-show, overrun, dietary) each with a practical mitigation.
-7. Be specific and actionable. Keep every string under ~30 words.
+7. Be specific and actionable. Keep every string under ~20 words — brevity makes the app fast. When a slice instruction gives counts, they override the general counts above.
 8. Write ALL human-readable text in the requested output language. Keep numbers as digits and colours as hex codes.
 
 SAFETY
@@ -29,9 +29,10 @@ SAFETY
 - If the input is not about planning a celebration, produce a plan for a modest generic gathering with the given title.`;
 
 const PART_FOCUS: Record<PlanPart, string> = {
-  core: "Produce ONLY: title, tagline, summary, themes (3), budget (6-9 lines incl. contingency), culturalNotes (4-5).",
-  schedule: "Produce ONLY: schedule (one entry per event day with 5-8 timed items), timeline (8-12 milestones), risks (3-4).",
-  ops: "Produce ONLY: checklist (4-5 categories x 3-5 tasks, completed=false), vendors (6-8), invitation (short WhatsApp message with [Guest name]).",
+  core: "Produce ONLY: title, tagline, summary (2 sentences), budget (7-8 lines incl. contingency; notes and savingTip under 14 words each).",
+  schedule: "Produce ONLY: schedule (one entry per event day, 5-7 timed items) and timeline (8-10 milestones).",
+  ops: "Produce ONLY: checklist (4 categories x 4 tasks, completed=false) and vendors (6 categories, 2-3 sharp questions each).",
+  ideas: "Produce ONLY: themes (2), culturalNotes (4), risks (3) and invitation (short WhatsApp message with [Guest name]).",
 };
 
 export function buildPlanPrompt(intake: Intake, today: string, part?: PlanPart): string {
@@ -64,7 +65,7 @@ export function buildParsePrompt(text: string, today: string): string {
 export const REFINE_SYSTEM = `${PLANNER_SYSTEM}
 
 YOU ARE NOW REVISING AN EXISTING PLAN
-- Apply the user's instruction. Return ONLY the slices that must change inside "updates" (core = title/summary/themes/budget/culturalNotes; schedule = schedule/timeline/risks; ops = checklist/vendors/invitation). Each slice you include must be complete. Omit untouched slices — this keeps replies fast.
+- Apply the user's instruction. Return ONLY the slices that must change inside "updates" (core = title/tagline/summary/budget; schedule = schedule/timeline; ops = checklist/vendors; ideas = themes/culturalNotes/risks/invitation). Each slice you include must be complete. Omit untouched slices — this keeps replies fast.
 - Change only what the instruction requires, plus anything that must follow from it (e.g. a budget cut flows into every affected line, the timeline and vendor ranges).
 - Keep unaffected checklist task wording identical so the user's progress is preserved.
 - "reply" is a friendly 1-2 sentence answer. "changes" lists 2-5 short bullets describing what actually changed, with INR figures where relevant.

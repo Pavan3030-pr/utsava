@@ -15,7 +15,7 @@ export function LogoMark({ size = 36 }: { size?: number }) {
 export function SiteHeader({ cta = true }: { cta?: boolean }) {
   return (
     <header className="no-print sticky top-0 z-40 border-b border-line/80 bg-ivory/85 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
+      <div className="container-x flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5" aria-label="Utsava home">
           <LogoMark />
           <span className="h-display text-xl font-semibold">Utsava</span>

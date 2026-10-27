@@ -146,15 +146,19 @@ export type DeepPartial<T> = T extends (infer U)[]
 export type PartialPlan = DeepPartial<StoredPlan>;
 
 /* ---------- Parallel generation: 3 independent slices of the plan ---------- */
-export const PlanCoreSchema = PlanSchema.pick({
-  title: true, tagline: true, summary: true, themes: true, budget: true, culturalNotes: true,
-});
-export const PlanScheduleSchema = PlanSchema.pick({ schedule: true, timeline: true, risks: true });
-export const PlanOpsSchema = PlanSchema.pick({ checklist: true, vendors: true, invitation: true });
+export const PlanCoreSchema = PlanSchema.pick({ title: true, tagline: true, summary: true, budget: true });
+export const PlanScheduleSchema = PlanSchema.pick({ schedule: true, timeline: true });
+export const PlanOpsSchema = PlanSchema.pick({ checklist: true, vendors: true });
+export const PlanIdeasSchema = PlanSchema.pick({ themes: true, culturalNotes: true, risks: true, invitation: true });
 
-export const PLAN_PARTS = ["core", "schedule", "ops"] as const;
+export const PLAN_PARTS = ["core", "schedule", "ops", "ideas"] as const;
 export type PlanPart = (typeof PLAN_PARTS)[number];
-export const PART_SCHEMAS = { core: PlanCoreSchema, schedule: PlanScheduleSchema, ops: PlanOpsSchema } as const;
+export const PART_SCHEMAS = {
+  core: PlanCoreSchema, schedule: PlanScheduleSchema, ops: PlanOpsSchema, ideas: PlanIdeasSchema,
+} as const;
+export const PART_LABELS: Record<PlanPart, string> = {
+  core: "Budget & summary", schedule: "Schedule & timeline", ops: "Checklist & vendors", ideas: "Themes & invitation",
+};
 
 export const PartQuerySchema = z.enum(PLAN_PARTS);
 
@@ -219,6 +223,7 @@ export const RefineResultSchema = z.object({
       core: PlanCoreSchema.optional(),
       schedule: PlanScheduleSchema.optional(),
       ops: PlanOpsSchema.optional(),
+      ideas: PlanIdeasSchema.optional(),
     })
     .describe("Include a slice ONLY if it must change; each included slice must be complete"),
 });

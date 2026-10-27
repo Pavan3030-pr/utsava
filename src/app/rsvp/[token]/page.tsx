@@ -66,6 +66,7 @@ export default function RsvpPage() {
     <div className="ambient min-h-screen">
       <header className="relative overflow-hidden px-6 py-14 text-center text-white" style={{ background: `linear-gradient(135deg, ${p[0]}, ${p[1]} 60%, ${p[2] ?? p[0]})` }}>
         <div className="rangoli absolute inset-0 opacity-40" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/45" aria-hidden="true" />
         <div className="relative mx-auto max-w-xl">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/90">You’re invited</p>
           <h1 className="h-display mt-3 text-4xl font-semibold drop-shadow sm:text-5xl">{invite.event.title}</h1>
