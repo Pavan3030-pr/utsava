@@ -1,10 +1,11 @@
 import type { NextRequest } from "next/server";
 import { generateObject } from "ai";
 import { jsonError, parseRequest, withTimeout } from "@/lib/api";
-import { AiNotConfiguredError, FAST_OPTIONS, getModel } from "@/lib/ai/model";
+import { AiNotConfiguredError, FAST_OPTIONS, withModelFallback } from "@/lib/ai/model";
 import { REFINE_SYSTEM, buildRefinePrompt } from "@/lib/ai/prompts";
 import { reconcileBudget } from "@/lib/budget";
 import { todayIso } from "@/lib/dates";
+import { log } from "@/lib/log";
 import { RefineRequestSchema, RefineResultSchema } from "@/lib/schemas";
 
 export const runtime = "nodejs";
@@ -17,16 +18,20 @@ export async function POST(req: NextRequest) {
   const { intake, plan, instruction } = parsed.data;
 
   try {
-    const { object } = await generateObject({
-      model: getModel(),
-      schema: RefineResultSchema,
-      system: REFINE_SYSTEM,
-      prompt: buildRefinePrompt(intake, plan, instruction, todayIso()),
-      temperature: 0.4,
-      maxRetries: 1,
-      abortSignal: withTimeout(req),
-      providerOptions: FAST_OPTIONS,
-    });
+    const { object } = await withModelFallback(
+      (model, attempt) =>
+        generateObject({
+          model,
+          schema: RefineResultSchema,
+          system: REFINE_SYSTEM,
+          prompt: buildRefinePrompt(intake, plan, instruction, todayIso()),
+          temperature: attempt > 0 ? 0.2 : 0.4,
+          maxRetries: 0,
+          abortSignal: withTimeout(req, 27_000),
+          providerOptions: FAST_OPTIONS,
+        }),
+      req.signal,
+    );
     // Never trust LLM arithmetic: reconcile any revised budget before returning.
     const updates = { ...object.updates };
     if (updates.core) {
@@ -35,7 +40,7 @@ export async function POST(req: NextRequest) {
     return Response.json({ ...object, updates }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     if (err instanceof AiNotConfiguredError) return jsonError(err.message, 503);
-    console.error("[plan/refine]", err);
+    log("error", "plan_refine_failed", { error: err instanceof Error ? err.message : String(err) });
     return jsonError("Couldn't revise the plan. Try rephrasing your request.", 502);
   }
 }

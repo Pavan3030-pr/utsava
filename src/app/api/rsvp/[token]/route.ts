@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
-import { jsonError, parseRequest } from "@/lib/api";
+import { clientIp, jsonError, parseRequest } from "@/lib/api";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { adminClient } from "@/lib/supabase/admin";
 import { RsvpSubmitSchema } from "@/lib/schemas";
 
@@ -25,7 +26,10 @@ async function loadGuest(token: string) {
 }
 
 /** Personalised invitation: only exposes what this guest needs to see. */
-export async function GET(_req: NextRequest, ctx: Ctx) {
+export async function GET(req: NextRequest, ctx: Ctx) {
+  // Cheap guard against token-guessing / scraping of invitation pages.
+  const rl = await checkRateLimit(`rsvp-get:${clientIp(req)}`, { limit: 60, windowMs: 60_000 });
+  if (!rl.ok) return jsonError("Too many requests — please wait a moment and try again.", 429, { "Retry-After": String(rl.retryAfterSec) });
   const { token } = await ctx.params;
   const found = await loadGuest(token);
   if ("error" in found) return found.error;

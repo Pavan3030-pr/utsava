@@ -36,6 +36,16 @@ flowchart LR
 * **Stateless server;** all state in Postgres (or local fallback).
 * **Security:** RLS on every table; public RSVP route is token-scoped, exposes only that guest's events, rate-limited, validated; prompt delimiters + sanitising; CSP + security headers; service key server-only.
 
+## Production hardening
+| Concern | What Utsava does |
+|---|---|
+| AI outages | Per-slice **silent self-healing**: a failed or malformed slice is retried automatically on a fallback model (`GEMINI_FALLBACK_MODEL` → OpenAI if keyed) at lower temperature; the user only sees an error after two failed heals. Copilot and intake parsing use the same fallback chain server-side. |
+| Abuse / cost | Same-origin check on every POST, per-IP rate limits, body-size caps, Zod validation. Set `UPSTASH_REDIS_REST_URL/TOKEN` for a **global** limiter across serverless instances; falls back to in-memory if Redis is down. |
+| Data loss | Debounced, serialised, latest-wins save queue with flush on tab hide/close; Postgres size + length constraints; RSVP table is write-locked from the browser. |
+| Observability | JSON structured logs, `/api/health` (ai/db/rsvp/rateLimit/build), `npm run smoke` post-deploy checks (also run in CI against the production build). |
+| Privacy & SEO | Private pages send `noindex`; `robots.txt`, `sitemap.xml`, web manifest, JSON-LD on the landing page. |
+| Print / PDF | A4 print stylesheet with branded header, page-break control and colour-exact output (Save as PDF). |
+
 ## Response time
 | | v1 | v3 |
 |---|---|---|
@@ -73,4 +83,4 @@ gcloud run deploy utsava --source . --region asia-south1 --allow-unauthenticated
 `NEXT_PUBLIC_*` are baked at build time — with `--source .` Cloud Build reads them from the env at build; on Vercel add them before deploying.
 
 ## Tests
-`tests/` covers budget reconciliation, INR parsing, dates, ICS (RFC 5545), rate limiter, prompt-injection, schema validation, multi-event RSVP maths, spend ledger, and a regression for progress preservation.
+91 tests. `tests/` covers save-queue ordering, Redis/in-memory rate limiting, origin checks, model fallback, budget reconciliation, INR parsing, dates, ICS (RFC 5545), rate limiter, prompt-injection, schema validation, multi-event RSVP maths, spend ledger, and a regression for progress preservation.

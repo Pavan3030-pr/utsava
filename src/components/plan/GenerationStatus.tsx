@@ -3,7 +3,7 @@ import { PART_LABELS, PLAN_PARTS, type PlanPart } from "@/lib/schemas";
 export type PartState = "waiting" | "writing" | "done";
 
 /** Live view of the parallel Gemini calls. Each row is a real request, not decoration. */
-export function GenerationStatus({ states, elapsedMs }: { states: Record<PlanPart, PartState>; elapsedMs: number }) {
+export function GenerationStatus({ states, elapsedMs, healing = 0 }: { states: Record<PlanPart, PartState>; elapsedMs: number; healing?: number }) {
   const done = PLAN_PARTS.filter((p) => states[p] === "done").length;
   return (
     <section className="no-print surface mt-6 p-5 sm:p-6" aria-labelledby="gen-title">
@@ -15,6 +15,7 @@ export function GenerationStatus({ states, elapsedMs }: { states: Record<PlanPar
         <span aria-hidden="true" className="rounded-full bg-cream px-3 py-1 text-sm font-semibold tabular-nums text-soft">{(elapsedMs / 1000).toFixed(1)}s</span>
       </div>
       <p className="sr-only" role="status" aria-live="polite">{done} of {PLAN_PARTS.length} sections ready</p>
+      {healing > 0 && <p className="mt-2 text-xs text-soft">One planner hit a snag — retrying it automatically on a backup model…</p>}
       <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {PLAN_PARTS.map((p) => {
           const st = states[p];

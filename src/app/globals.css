@@ -133,9 +133,18 @@ p, li { text-wrap: pretty; }
 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
 
+.print-only { display: none; }
+
+@page { size: A4; margin: 16mm 14mm 18mm; }
+
 @media print {
   .no-print { display: none !important; }
-  body { background: #fff !important; }
-  .surface { box-shadow: none !important; break-inside: avoid; }
+  .print-only { display: block !important; }
+  html, body { background: #fff !important; color: #1c1410 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ambient::before, .ambient::after, .rangoli { display: none !important; }
+  .surface { box-shadow: none !important; break-inside: avoid; border: 1px solid #e6d6bf !important; }
   .print-section { break-before: page; }
+  h1, h2, h3, h4 { break-after: avoid; }
+  li, tr, dl, figure { break-inside: avoid; }
+  a { color: inherit !important; text-decoration: none !important; }
 }

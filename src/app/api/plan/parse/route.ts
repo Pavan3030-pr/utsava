@@ -1,9 +1,10 @@
 import type { NextRequest } from "next/server";
 import { generateObject } from "ai";
 import { jsonError, parseRequest, withTimeout } from "@/lib/api";
-import { AiNotConfiguredError, FAST_OPTIONS, getModel } from "@/lib/ai/model";
+import { AiNotConfiguredError, FAST_OPTIONS, withModelFallback } from "@/lib/ai/model";
 import { PARSER_SYSTEM, buildParsePrompt, sanitizeField } from "@/lib/ai/prompts";
 import { todayIso } from "@/lib/dates";
+import { log } from "@/lib/log";
 import { ParseRequestSchema, ParsedIntakeSchema } from "@/lib/schemas";
 
 export const runtime = "nodejs";
@@ -16,16 +17,20 @@ export async function POST(req: NextRequest) {
 
   try {
     const today = todayIso();
-    const { object } = await generateObject({
-      model: getModel(),
-      schema: ParsedIntakeSchema,
-      system: PARSER_SYSTEM,
-      prompt: buildParsePrompt(parsed.data.text, today),
-      temperature: 0,
-      maxRetries: 1,
-      abortSignal: withTimeout(req, 25_000),
-      providerOptions: FAST_OPTIONS,
-    });
+    const { object } = await withModelFallback(
+      (model) =>
+        generateObject({
+          model,
+          schema: ParsedIntakeSchema,
+          system: PARSER_SYSTEM,
+          prompt: buildParsePrompt(parsed.data.text, today),
+          temperature: 0,
+          maxRetries: 0,
+          abortSignal: withTimeout(req, 12_000),
+          providerOptions: FAST_OPTIONS,
+        }),
+      req.signal,
+    );
 
     // Clamp / clean model output before it reaches the form.
     const date =
@@ -44,7 +49,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     if (err instanceof AiNotConfiguredError) return jsonError(err.message, 503);
-    console.error("[plan/parse]", err);
+    log("error", "plan_parse_failed", { error: err instanceof Error ? err.message : String(err) });
     return jsonError("Couldn't understand that — try the form below.", 502);
   }
 }

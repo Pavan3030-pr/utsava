@@ -10,7 +10,7 @@ const EXAMPLES = [
 const STATS = [
   { v: "4", l: "AI planners writing in parallel" },
   { v: "9", l: "Indian languages" },
-  { v: "62", l: "automated tests" },
+  { v: "90+", l: "automated tests" },
   { v: "0", l: "sign-ups to start" },
 ];
 
@@ -71,9 +71,21 @@ function SectionHead({ eyebrow, title, lead }: { eyebrow: string; title: string;
   );
 }
 
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Utsava",
+  applicationCategory: "LifestyleApplication",
+  operatingSystem: "Any",
+  description: "AI celebration planner for Indian weddings, birthdays and community events: budget, timeline, guest lists and RSVPs.",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "INR" },
+  inLanguage: ["en", "hi", "te", "ta", "kn", "ml", "mr", "bn", "gu"],
+};
+
 export default function HomePage() {
   return (
     <div className="ambient">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <SiteHeader />
       <main id="main">
         {/* ───────── HERO ───────── */}

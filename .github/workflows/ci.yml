@@ -2,17 +2,28 @@ name: CI
 on:
   push: { branches: [main] }
   pull_request:
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
-      - run: npm ci || npm install
+      - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
         env:
           GOOGLE_GENERATIVE_AI_API_KEY: ci-placeholder
+      - name: Smoke test the production build
+        run: |
+          GOOGLE_GENERATIVE_AI_API_KEY=ci-placeholder npm run start &
+          for i in $(seq 1 30); do curl -sf http://localhost:3000/api/health && break || sleep 1; done
+          BASE_URL=http://localhost:3000 npm run smoke

@@ -1,9 +1,10 @@
 import type { NextRequest } from "next/server";
 import type { z } from "zod";
-import { rateLimit } from "./rate-limit";
+import { checkRateLimit } from "./rate-limit";
 
 export function clientIp(req: NextRequest): string {
-  const fwd = req.headers.get("x-forwarded-for");
+  // On Vercel the platform sets these headers itself, so they can't be spoofed by the caller.
+  const fwd = req.headers.get("x-vercel-forwarded-for") ?? req.headers.get("x-forwarded-for");
   return fwd?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
 }
 
@@ -14,15 +15,29 @@ export function jsonError(message: string, status: number, headers: Record<strin
   });
 }
 
+/** Browsers always send Origin on cross-site POSTs. Reject any that don't come from our own host. */
+export function isSameOrigin(req: NextRequest): boolean {
+  const origin = req.headers.get("origin");
+  if (!origin) return true; // non-browser clients (curl, bench script, server-to-server)
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
 type Parsed<T> = { ok: true; data: T } | { ok: false; response: Response };
 
-/** Rate-limit → size-limit → JSON-parse → schema-validate. One place for all API hardening. */
+/** Origin → rate-limit → size-limit → JSON-parse → schema-validate. One place for all API hardening. */
 export async function parseRequest<T>(
   req: NextRequest,
   schema: z.ZodType<T, z.ZodTypeDef, unknown>,
   opts: { bucket: string; limit: number; maxBytes: number },
 ): Promise<Parsed<T>> {
-  const rl = rateLimit(`${opts.bucket}:${clientIp(req)}`, { limit: opts.limit, windowMs: 60_000 });
+  if (!isSameOrigin(req)) return { ok: false, response: jsonError("Cross-origin requests are not allowed.", 403) };
+
+  const rl = await checkRateLimit(`${opts.bucket}:${clientIp(req)}`, { limit: opts.limit, windowMs: 60_000 });
   if (!rl.ok) {
     return {
       ok: false,

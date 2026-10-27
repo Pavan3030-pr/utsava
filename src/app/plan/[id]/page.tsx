@@ -20,6 +20,7 @@ import { daysBetween, todayIso } from "@/lib/dates";
 import { buildIcs } from "@/lib/ics";
 import { normalizePlan, planToText } from "@/lib/plan-utils";
 import { repo, type EventRecord } from "@/lib/repo";
+import { createSaveQueue } from "@/lib/save-queue";
 import {
   PLAN_PARTS, PlanCoreSchema, PlanIdeasSchema, PlanOpsSchema, PlanSchema, PlanScheduleSchema,
   type Ledger, type PartialPlan, type PlanPart, type StoredPlan,
@@ -58,18 +59,50 @@ export default function PlanPage() {
   const [doneParts, setDoneParts] = useState<PlanPart[]>([]);
   const startRef = useRef<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const attemptsRef = useRef<Partial<Record<PlanPart, number>>>({});
+  const retryPartRef = useRef<(part: PlanPart) => void>(() => {});
+  const [healing, setHealing] = useState(0);
 
   const flash = useCallback((msg: string) => { setToast(msg); setTimeout(() => setToast(""), 2800); }, []);
 
-  const persist = useCallback((next: EventRecord) => {
+  const saveQueue = useRef(
+    createSaveQueue<EventRecord>(
+      (rec) => repo.save(rec),
+      (e) => flash(e instanceof Error ? e.message : "Couldn’t save changes — retrying on your next edit"),
+    ),
+  );
+  const persist = useCallback((next: EventRecord, opts?: { immediate?: boolean }) => {
     recordRef.current = next;
     setRecord(next);
-    repo.save(next).catch((e) => flash(e instanceof Error ? e.message : "Couldn’t save changes"));
-  }, [flash]);
+    saveQueue.current.push(next, opts);
+  }, []);
 
-  /** When all three slices have arrived, validate the whole plan, verify the maths, save. */
+  // Never lose an edit: flush pending writes when the tab is hidden, closed or navigated away from.
+  useEffect(() => {
+    const q = saveQueue.current;
+    const onHide = () => { if (document.visibilityState === "hidden") void q.flush(); };
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", onHide);
+    return () => { document.removeEventListener("visibilitychange", onHide); window.removeEventListener("pagehide", onHide); void q.flush(); };
+  }, []);
+
+  /** A slice failed (HTTP error or malformed JSON). Heal silently on a fallback model before showing anything. */
+  const failPart = useCallback((part: PlanPart, err?: Error) => {
+    const msg = friendly(err?.message);
+    const fatal = /too many requests|not configured|cross-origin|too large/i.test(msg);
+    const tried = attemptsRef.current[part] ?? 0;
+    if (!fatal && tried < 2 && recordRef.current) {
+      attemptsRef.current[part] = tried + 1;
+      setHealing((n) => n + 1);
+      setTimeout(() => retryPartRef.current(part), 350 * (tried + 1));
+      return;
+    }
+    setGenError(msg || "Part of the AI response was incomplete. Please try again.");
+  }, []);
+
+  /** When all four slices have arrived, validate the whole plan, verify the maths, save. */
   const finishPart = useCallback((part: PlanPart, obj: unknown, err?: Error) => {
-    if (!obj) { setGenError(friendly(err?.message) || "Part of the AI response was incomplete. Please try again."); return; }
+    if (!obj) { failPart(part, err); return; }
     partsRef.current[part] = obj;
     setDoneParts((d) => (d.includes(part) ? d : [...d, part]));
     const p = partsRef.current;
@@ -80,24 +113,26 @@ export default function PlanPage() {
     const full = PlanSchema.safeParse(merged);
     if (!full.success) { setGenError("The AI returned an unexpected format. Please try again."); return; }
     setGenError("");
+    setHealing(0);
     const seconds = startRef.current ? (performance.now() - startRef.current) / 1000 : 0;
     setElapsed(seconds * 1000);
     startRef.current = null;
-    persist({ ...rec, plan: normalizePlan(full.data, rec.intake) });
+    persist({ ...rec, plan: normalizePlan(full.data, rec.intake) }, { immediate: true });
     if (seconds > 0) flash(`Plan ready in ${seconds.toFixed(1)}s ✦`);
-  }, [persist, flash]);
+  }, [persist, flash, failPart]);
 
-  const core = useObject({ api: "/api/plan/stream?part=core", schema: PlanCoreSchema, onFinish: ({ object, error }) => finishPart("core", object, error) });
-  const schedule = useObject({ api: "/api/plan/stream?part=schedule", schema: PlanScheduleSchema, onFinish: ({ object, error }) => finishPart("schedule", object, error) });
-  const ops = useObject({ api: "/api/plan/stream?part=ops", schema: PlanOpsSchema, onFinish: ({ object, error }) => finishPart("ops", object, error) });
-  const ideas = useObject({ api: "/api/plan/stream?part=ideas", schema: PlanIdeasSchema, onFinish: ({ object, error }) => finishPart("ideas", object, error) });
+  const core = useObject({ api: "/api/plan/stream?part=core", schema: PlanCoreSchema, onFinish: ({ object, error }) => finishPart("core", object, error), onError: (error) => failPart("core", error) });
+  const schedule = useObject({ api: "/api/plan/stream?part=schedule", schema: PlanScheduleSchema, onFinish: ({ object, error }) => finishPart("schedule", object, error), onError: (error) => failPart("schedule", error) });
+  const ops = useObject({ api: "/api/plan/stream?part=ops", schema: PlanOpsSchema, onFinish: ({ object, error }) => finishPart("ops", object, error), onError: (error) => failPart("ops", error) });
+  const ideas = useObject({ api: "/api/plan/stream?part=ideas", schema: PlanIdeasSchema, onFinish: ({ object, error }) => finishPart("ideas", object, error), onError: (error) => failPart("ideas", error) });
   const submitters = useRef({ core: core.submit, schedule: schedule.submit, ops: ops.submit, ideas: ideas.submit });
   submitters.current = { core: core.submit, schedule: schedule.submit, ops: ops.submit, ideas: ideas.submit };
 
   const runParts = useCallback((rec: EventRecord, only: readonly PlanPart[] = PLAN_PARTS) => {
     if (startRef.current === null) startRef.current = performance.now();
-    for (const p of only) submitters.current[p](rec.intake);
+    for (const p of only) submitters.current[p]({ ...rec.intake, attempt: attemptsRef.current[p] ?? 0 });
   }, []);
+  retryPartRef.current = (part) => { const rec = recordRef.current; if (rec && !partsRef.current[part]) runParts(rec, [part]); };
 
   useEffect(() => {
     let alive = true;
@@ -123,7 +158,9 @@ export default function PlanPage() {
     const rec = recordRef.current;
     if (!rec) return;
     setGenError("");
-    runParts(rec, PLAN_PARTS.filter((p) => !partsRef.current[p]));
+    const missing = PLAN_PARTS.filter((p) => !partsRef.current[p]);
+    for (const p of missing) attemptsRef.current[p] = 1; // go straight to the fallback model
+    runParts(rec, missing);
   };
 
   const generating = !record?.plan && startRef.current !== null;
@@ -167,8 +204,8 @@ export default function PlanPage() {
   const stored: StoredPlan | null = record.plan;
   const plan = (stored ?? streamed) as PartialPlan;
   const isLoading = core.isLoading || schedule.isLoading || ops.isLoading || ideas.isLoading;
-  const streaming = !stored && (isLoading || (!genError && !core.error && !schedule.error && !ops.error && !ideas.error));
-  const errorText = !stored ? genError || friendly((core.error ?? schedule.error ?? ops.error ?? ideas.error)?.message) : "";
+  const streaming = !stored && (isLoading || !genError);
+  const errorText = !stored ? genError : "";
   const loadingBy: Record<PlanPart, boolean> = { core: core.isLoading, schedule: schedule.isLoading, ops: ops.isLoading, ideas: ideas.isLoading };
   const objBy: Record<PlanPart, unknown> = { core: core.object, schedule: schedule.object, ops: ops.object, ideas: ideas.object };
   const partStates = Object.fromEntries(PLAN_PARTS.map((p) => [p, doneParts.includes(p) ? "done" : loadingBy[p] || objBy[p] ? "writing" : "waiting"])) as Record<PlanPart, PartState>;
@@ -223,6 +260,10 @@ export default function PlanPage() {
     <div className="ambient min-h-screen">
       <SiteHeader />
       <main id="main" className="container-x py-8 sm:py-10">
+        <header className="print-only mb-4 flex items-baseline justify-between border-b border-line pb-2 text-xs text-soft">
+          <span className="font-semibold tracking-wide">उत्सव · Utsava event plan</span>
+          <span>Generated {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</span>
+        </header>
         {/* Hero */}
         <section className="surface relative overflow-hidden p-7 sm:p-9" aria-labelledby="plan-title">
           <div className="rangoli pointer-events-none absolute -right-16 -top-16 h-64 w-64 opacity-60" aria-hidden="true" />
@@ -247,7 +288,7 @@ export default function PlanPage() {
           </div>
         </section>
 
-        {streaming && <GenerationStatus states={partStates} elapsedMs={elapsed} />}
+        {streaming && <GenerationStatus states={partStates} elapsedMs={elapsed} healing={healing} />}
 
         {errorText && !isLoading && (
           <div role="alert" className="no-print mt-5 rounded-2xl border border-kumkum/30 bg-rose-soft p-5 text-kumkum-dark">
@@ -281,7 +322,7 @@ export default function PlanPage() {
             {stored && !printing && tab === "guests" && panel("guests", <Guests eventId={record.id} plan={stored} plannedGuests={intake.guests} />)}
             {panel("ideas", <Ideas plan={plan} streaming={streaming} />)}
             {stored && !printing && tab === "copilot" && panel("copilot", (
-              <div className="mx-auto max-w-2xl"><Copilot intake={intake} plan={stored} onApply={(p) => { const rec = recordRef.current; if (rec) persist({ ...rec, plan: p }); }} /></div>
+              <div className="mx-auto max-w-2xl"><Copilot intake={intake} plan={stored} onApply={(p) => { const rec = recordRef.current; if (rec) persist({ ...rec, plan: p }, { immediate: true }); }} /></div>
             ))}
           </div>
         </div>

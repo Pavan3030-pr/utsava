@@ -162,6 +162,9 @@ export const PART_LABELS: Record<PlanPart, string> = {
 
 export const PartQuerySchema = z.enum(PLAN_PARTS);
 
+/** Slice request = the intake plus which retry attempt this is (0 = first try → primary model). */
+export const StreamRequestSchema = IntakeSchema.extend({ attempt: z.number().int().min(0).max(2).default(0) });
+
 /* ---------- Guests & RSVPs ---------- */
 export type RsvpStatus = "yes" | "no" | "maybe";
 export interface Rsvp { event: string; status: RsvpStatus; partySize: number; note?: string }

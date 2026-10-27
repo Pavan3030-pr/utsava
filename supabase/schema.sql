@@ -61,3 +61,26 @@ create or replace function public.touch_updated_at() returns trigger language pl
 begin new.updated_at = now(); return new; end $$;
 drop trigger if exists events_touch on public.events;
 create trigger events_touch before update on public.events for each row execute procedure public.touch_updated_at();
+
+-- ───────────────────────── Production hardening (idempotent; safe to re-run) ─────────────────────────
+
+-- Guard against runaway payloads (1 MB plan, 512 KB ledger, 100 guests-per-insert is enforced in the app).
+alter table public.events drop constraint if exists events_plan_size;
+alter table public.events add constraint events_plan_size check (plan is null or pg_column_size(plan) < 1048576);
+alter table public.events drop constraint if exists events_ledger_size;
+alter table public.events add constraint events_ledger_size check (pg_column_size(ledger) < 524288);
+
+-- Hot paths: RSVP dashboard joins and per-guest lookups.
+create index if not exists rsvps_guest_idx on public.rsvps(guest_id);
+create index if not exists guests_token_idx on public.guests(token);
+
+-- Hygiene: bounded free-text columns.
+alter table public.guests drop constraint if exists guests_text_len;
+alter table public.guests add constraint guests_text_len check (
+  coalesce(char_length(phone), 0) <= 30 and coalesce(char_length(group_name), 0) <= 80 and coalesce(char_length(diet), 0) <= 80
+);
+alter table public.rsvps drop constraint if exists rsvps_note_len;
+alter table public.rsvps add constraint rsvps_note_len check (coalesce(char_length(note), 0) <= 300);
+
+-- Defence in depth: the browser (anon/authenticated roles) can never write RSVPs directly.
+revoke insert, update, delete on public.rsvps from anon, authenticated;

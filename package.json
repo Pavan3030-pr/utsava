@@ -2,7 +2,7 @@
   "name": "utsava",
   "version": "1.0.0",
   "private": true,
-  "description": "Utsava — GenAI celebration & event planner for weddings, birthdays and community events",
+  "description": "Utsava \u2014 GenAI celebration & event planner for weddings, birthdays and community events",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build",
-    "bench": "node scripts/bench.mjs"
+    "bench": "node scripts/bench.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.0",
