@@ -1,5 +1,5 @@
 import { reconcileBudget } from "./budget";
-import { addDays, formatDate, phaseLabel } from "./dates";
+import { addDays, daysBetween, formatDate, phaseLabel } from "./dates";
 import { formatINRFull } from "./format";
 import type { EventPlan, Intake, StoredPlan } from "./schemas";
 
@@ -84,4 +84,23 @@ export function planToText(plan: EventPlan, intake: Intake): string {
   }
   lines.push("", "Planned with Utsava");
   return lines.join("\n");
+}
+
+/** The next few not-yet-passed milestones, with real dates — powers the "Up next" card. */
+export function upcomingMilestones(
+  timeline: { daysBefore?: number; title?: string; description?: string }[] | undefined,
+  eventDate: string | undefined,
+  today: string,
+  count = 3,
+): { date: string; daysLeft: number; title: string; description?: string }[] {
+  if (!eventDate) return [];
+  return (timeline ?? [])
+    .filter((t): t is { daysBefore: number; title: string; description?: string } => typeof t?.daysBefore === "number" && !!t.title)
+    .map((t) => {
+      const date = addDays(eventDate, -t.daysBefore);
+      return { date, daysLeft: daysBetween(today, date), title: t.title, description: t.description };
+    })
+    .filter((t) => t.daysLeft >= 0)
+    .sort((a, b) => a.daysLeft - b.daysLeft)
+    .slice(0, count);
 }

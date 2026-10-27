@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checklistProgress, mergeProgress, normalizePlan, planToText, safePalette } from "../src/lib/plan-utils";
+import { checklistProgress, mergeProgress, normalizePlan, planToText, safePalette, upcomingMilestones } from "../src/lib/plan-utils";
 import { intake, plan } from "./fixtures";
 
 describe("normalizePlan", () => {
@@ -55,5 +55,19 @@ describe("planToText", () => {
     expect(t).toContain("₹20,00,000");
     expect(t).toContain("[x] Book caterer");
     expect(t).toContain("2027");
+  });
+});
+
+describe("upcomingMilestones", () => {
+  const tl = [{ daysBefore: 90, title: "Book venue" }, { daysBefore: 30, title: "Send invites" }, { daysBefore: 0, title: "Wedding" }, { daysBefore: undefined, title: "bad" }];
+  it("returns future milestones soonest-first, skipping past and malformed ones", () => {
+    // event 2027-02-14, today 2026-12-20 → venue (Nov 16) is past; invites Jan 15 (26d) then wedding (56d)
+    const r = upcomingMilestones(tl, "2027-02-14", "2026-12-20", 5);
+    expect(r.map((m) => m.title)).toEqual(["Send invites", "Wedding"]);
+    expect(r[0].daysLeft).toBe(26);
+  });
+  it("is empty without an event date and respects the count", () => {
+    expect(upcomingMilestones(tl, undefined, "2026-12-20")).toEqual([]);
+    expect(upcomingMilestones(tl, "2027-02-14", "2026-01-01", 1)).toHaveLength(1);
   });
 });

@@ -6,11 +6,11 @@ const isProd = process.env.NODE_ENV === "production";
 const csp = [
   "default-src 'self'",
   "img-src 'self' data: blob:",
-  "style-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   // Next.js injects inline bootstrap scripts; dev also needs eval for HMR.
   `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"}`,
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-  "font-src 'self' data:",
+  "font-src 'self' data: https://fonts.gstatic.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

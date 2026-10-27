@@ -1,6 +1,6 @@
 import { daysBetween, formatDate, todayIso } from "@/lib/dates";
 import { formatINR } from "@/lib/format";
-import { checklistProgress } from "@/lib/plan-utils";
+import { checklistProgress, upcomingMilestones } from "@/lib/plan-utils";
 import type { Intake, PartialPlan } from "@/lib/schemas";
 import { Panel, Waiting, list } from "./ui";
 
@@ -18,6 +18,7 @@ export function Overview({ plan, intake, streaming }: { plan: PartialPlan; intak
   const days = intake.date ? daysBetween(todayIso(), intake.date) : undefined;
   const progress = checklistProgress(plan);
   const notes = list(plan.culturalNotes);
+  const next = upcomingMilestones(list(plan.timeline), intake.date, todayIso());
   const risks = list(plan.risks);
 
   return (
@@ -28,6 +29,19 @@ export function Overview({ plan, intake, streaming }: { plan: PartialPlan; intak
         <Kpi label="Checklist" value={`${progress.percent}%`} sub={`${progress.done}/${progress.total} tasks`} tone="bg-leaf-soft text-leaf" />
         <Kpi label="Location" value={intake.location || "India"} sub={intake.style} tone="bg-cream text-ink" />
       </div>
+
+      {next.length > 0 && (
+        <Panel kicker="Up next" title="Your next milestones">
+          <ul className="grid gap-4 sm:grid-cols-3">
+            {next.map((m) => (
+              <li key={`${m.date}-${m.title}`} className="rounded-2xl bg-cream/70 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-kumkum">{m.daysLeft === 0 ? "Today" : `In ${m.daysLeft} day${m.daysLeft === 1 ? "" : "s"}`} · {formatDate(m.date)}</p>
+                <p className="mt-1.5 font-semibold leading-snug">{m.title}</p>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel kicker="Cultural notes" title="Honouring tradition">

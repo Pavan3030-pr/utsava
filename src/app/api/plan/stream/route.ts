@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
   const part = PartQuerySchema.safeParse(req.nextUrl.searchParams.get("part"));
   if (!part.success) return jsonError("Invalid part.", 422);
 
-  // 3 slices per generation → allow ~6 generations / minute / IP
-  const parsed = await parseRequest(req, IntakeSchema, { bucket: "stream", limit: 18, maxBytes: 8_000 });
+  // 4 slices per generation → ~6 generations / minute / IP
+  const parsed = await parseRequest(req, IntakeSchema, { bucket: "stream", limit: 24, maxBytes: 8_000 });
   if (!parsed.ok) return parsed.response;
 
   try {
