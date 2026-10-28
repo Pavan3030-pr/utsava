@@ -28,7 +28,7 @@ export async function addGuests(
   await ensureUser();
   const rows = items.map((g) => ({ event_id: eventId, name: g.name, phone: g.phone ?? null, group_name: g.group ?? null, diet: g.diet ?? null, invited }));
   const { error } = await sb().from("guests").insert(rows);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(error.code === "23505" ? "Someone in that list is already a guest (same phone number)." : error.message);
 }
 
 export async function setGuestInvites(guestId: string, invited: string[]): Promise<void> {

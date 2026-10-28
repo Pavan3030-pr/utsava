@@ -36,6 +36,17 @@ flowchart LR
 * **Stateless server;** all state in Postgres (or local fallback).
 * **Security:** RLS on every table; public RSVP route is token-scoped, exposes only that guest's events, rate-limited, validated; prompt delimiters + sanitising; CSP + security headers; service key server-only.
 
+## AI Copilot
+| What | How |
+|---|---|
+| Speed | Streams: the reply and change list appear in about a second while the plan rewrites. Only the plan parts an instruction can affect are sent to, and rewritten by, the model (budget → budget + checklist/vendors, schedule changes → schedule…); broad or unclear requests fall back to the whole plan. |
+| Reliability | Failed or malformed output retries silently on the fallback model chain (twice) before any error is shown. |
+| Quality | Remembers the last 3 turns, keeps ticked tasks, shows budget before → after, **↶ Undo** restores the previous plan. |
+| No duplicates | The model is told never to repeat items, and every result passes through the dedupe engine (below). |
+
+## Duplicate protection
+Plans: repeated budget lines (merged, total unchanged), checklist tasks (across all categories, progress and highest priority kept), vendors, milestones (same day only), schedule items, themes, palette colours, notes and risks are merged on generation, after every Copilot change, and once on load for older saved plans. Guests: pasted lists skip people already listed (widening their invitations instead), a “Merge repeated guests” button cleans existing repeats, and `supabase/dedupe.sql` (run once) removes old repeats and adds a unique phone-per-event index. Vendor shortlist: the same vendor can’t be added twice.
+
 ## Real data (no paid keys)
 | Feature | Source | Notes |
 |---|---|---|
@@ -90,4 +101,4 @@ gcloud run deploy utsava --source . --region asia-south1 --allow-unauthenticated
 `NEXT_PUBLIC_*` are baked at build time — with `--source .` Cloud Build reads them from the env at build; on Vercel add them before deploying.
 
 ## Tests
-113 tests. `tests/` covers save-queue ordering, Redis/in-memory rate limiting, origin checks, model fallback, budget reconciliation, INR parsing, dates, ICS (RFC 5545), rate limiter, prompt-injection, schema validation, multi-event RSVP maths, spend ledger, and a regression for progress preservation.
+142 tests. `tests/` covers save-queue ordering, Redis/in-memory rate limiting, origin checks, model fallback, budget reconciliation, INR parsing, dates, ICS (RFC 5545), rate limiter, prompt-injection, schema validation, multi-event RSVP maths, spend ledger, and a regression for progress preservation.

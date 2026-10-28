@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatINRFull, parseINR } from "@/lib/format";
 import type { Ledger, PartialPlan, ShortlistItem, ShortlistStatus } from "@/lib/schemas";
+import { isDuplicateVendor } from "@/lib/dedupe";
 import type { PlaceResult } from "@/lib/place-categories";
 import { Panel, Waiting, list } from "./ui";
 import { VendorFinder } from "./VendorFinder";
@@ -28,6 +29,7 @@ export function Vendors({ plan, streaming, ledger, city, onLedger }: {
     if (!ledger || !onLedger) return;
     const quote = form.quote ? parseINR(form.quote) : undefined;
     if (!form.name.trim() || (form.quote && quote === undefined)) { setErr("Add a vendor name (and a valid quote like 85k)."); return; }
+    if (isDuplicateVendor(ledger.shortlist, form.name, form.category || categories[0] || "Other")) { setErr("That vendor is already on your shortlist."); return; }
     setErr("");
     const item: ShortlistItem = { id: uid(), category: form.category || categories[0] || "Other", name: form.name.trim().slice(0, 120), phone: form.phone.trim() || undefined, quote, status: quote ? "quoted" : "shortlisted" };
     onLedger({ ...ledger, shortlist: [...ledger.shortlist, item] });

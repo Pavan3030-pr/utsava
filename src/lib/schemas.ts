@@ -127,7 +127,7 @@ export type EventPlan = z.infer<typeof PlanSchema>;
 
 /** Plan as persisted in the browser (adds verification metadata). */
 export type StoredPlan = EventPlan & {
-  meta?: { budgetAdjusted: boolean; generatedAt: string };
+  meta?: { budgetAdjusted: boolean; generatedAt: string; duplicatesRemoved?: number };
 };
 
 export const ParseRequestSchema = z.object({ text: z.string().trim().min(5).max(800) });
@@ -135,6 +135,10 @@ export const RefineRequestSchema = z.object({
   intake: IntakeSchema,
   plan: PlanSchema,
   instruction: z.string().trim().min(3).max(500),
+  /** 0 = primary model; 1–2 = silent retries on the fallback chain */
+  attempt: z.number().int().min(0).max(2).default(0),
+  /** last few turns so "a bit cheaper than that" makes sense */
+  history: z.array(z.object({ instruction: z.string().max(300), reply: z.string().max(400) })).max(3).default([]),
 });
 
 /** Recursively-optional version used while a plan is still streaming in. */

@@ -1,4 +1,5 @@
 import { reconcileBudget } from "./budget";
+import { dedupePlan } from "./dedupe";
 import { addDays, daysBetween, formatDate, phaseLabel } from "./dates";
 import { formatINRFull } from "./format";
 import type { EventPlan, Intake, StoredPlan } from "./schemas";
@@ -18,18 +19,20 @@ export function normalizePlan(
   now: Date = new Date(),
   keepProgress = false,
 ): StoredPlan {
-  const { budget, adjusted } = reconcileBudget(plan.budget, intake.budget);
-  const timeline = [...plan.timeline].sort((a, b) => b.daysBefore - a.daysBefore);
+  // Remove repeats first (merged budget lines keep their amounts), then verify the maths.
+  const { plan: clean, removed } = dedupePlan(plan);
+  const { budget, adjusted } = reconcileBudget(clean.budget, intake.budget);
+  const timeline = [...clean.timeline].sort((a, b) => b.daysBefore - a.daysBefore);
   return {
-    ...plan,
+    ...clean,
     budget,
     timeline,
-    themes: plan.themes.map((t) => ({ ...t, palette: safePalette(t.palette) })),
-    checklist: plan.checklist.map((c) => ({
+    themes: clean.themes.map((t) => ({ ...t, palette: safePalette(t.palette) })),
+    checklist: clean.checklist.map((c) => ({
       ...c,
       items: c.items.map((i) => ({ ...i, completed: keepProgress ? i.completed : false })),
     })),
-    meta: { budgetAdjusted: adjusted, generatedAt: now.toISOString() },
+    meta: { budgetAdjusted: adjusted, generatedAt: now.toISOString(), ...(removed > 0 ? { duplicatesRemoved: removed } : {}) },
   };
 }
 

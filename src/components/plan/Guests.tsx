@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { addGuests, listGuests, removeGuest } from "@/lib/guests-db";
+import { addGuests, listGuests, removeGuest, setGuestInvites } from "@/lib/guests-db";
+import { findDuplicateGuests, planGuestImport } from "@/lib/dedupe";
 import { eventNames, guestsToCsv, guestsWaiting, inviteMessage, parseBulkGuests, rsvpLink, summarizeRsvps, whatsappUrl } from "@/lib/guests";
 import type { Guest, StoredPlan } from "@/lib/schemas";
 import { CLOUD_ENABLED } from "@/lib/supabase/client";
@@ -21,6 +22,7 @@ export function Guests({ eventId, plan, plannedGuests }: { eventId: string; plan
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState("");
   const [onlyWaiting, setOnlyWaiting] = useState(false);
+  const [notice, setNotice] = useState("");
 
   const refresh = useCallback(async () => {
     try { setGuests(await listGuests(eventId)); setError(""); }
@@ -43,11 +45,36 @@ export function Guests({ eventId, plan, plannedGuests }: { eventId: string; plan
   const confirmed = Math.max(...events.map((e) => stats[e]?.headcount ?? 0), 0);
 
   const add = async () => {
-    const items = parseBulkGuests(bulk);
+    const items = parseBulkGuests(bulk).map((g) => ({ ...g, group: g.group ?? group }));
     if (items.length === 0 || selected.length === 0) return;
     setBusy(true);
-    try { await addGuests(eventId, items.map((g) => ({ ...g, group: g.group ?? group })), selected); setBulk(""); await refresh(); }
+    setNotice("");
+    try {
+      // Never create the same person twice: skip repeats, and widen invites for people already listed.
+      const plan = planGuestImport(guests, items, selected);
+      if (plan.toInsert.length) await addGuests(eventId, plan.toInsert, selected);
+      for (const u of plan.toUpdate) await setGuestInvites(u.id, u.invited);
+      setBulk("");
+      setNotice(`Added ${plan.toInsert.length}${plan.toUpdate.length ? ` · updated invites for ${plan.toUpdate.length}` : ""}${plan.skipped ? ` · skipped ${plan.skipped} already on the list` : ""}.`);
+      await refresh();
+    }
     catch (e) { setError(e instanceof Error ? e.message : "Couldn’t add guests"); }
+    finally { setBusy(false); }
+  };
+
+  const dupes = findDuplicateGuests(guests);
+  const cleanDuplicates = async () => {
+    const extra = dupes.reduce((n, d) => n + d.remove.length, 0);
+    if (!window.confirm(`Merge ${extra} repeated guest${extra === 1 ? "" : "s"}? The entry that already has RSVPs is kept and invitations are combined.`)) return;
+    setBusy(true);
+    try {
+      for (const d of dupes) {
+        if (d.invited.length !== d.keep.invited.length) await setGuestInvites(d.keep.id, d.invited);
+        for (const r of d.remove) await removeGuest(r.id);
+      }
+      setNotice(`Merged ${extra} repeated guest${extra === 1 ? "" : "s"}.`);
+      await refresh();
+    } catch (e) { setError(e instanceof Error ? e.message : "Couldn’t merge duplicates"); }
     finally { setBusy(false); }
   };
 
@@ -119,12 +146,14 @@ export function Guests({ eventId, plan, plannedGuests }: { eventId: string; plan
         {guests.length > 0 && (
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <button type="button" className="btn btn-ghost btn-sm" onClick={exportCsv}>Export CSV</button>
+            {dupes.length > 0 && <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={cleanDuplicates}>Merge {dupes.reduce((n, d) => n + d.remove.length, 0)} repeated guest{dupes.reduce((n, d) => n + d.remove.length, 0) === 1 ? "" : "s"}</button>}
             <label className="flex cursor-pointer items-center gap-2 text-sm">
               <input type="checkbox" className="accent-[#b4234e]" checked={onlyWaiting} onChange={(e) => setOnlyWaiting(e.target.checked)} />
               Only guests who haven’t replied ({waiting.length})
             </label>
           </div>
         )}
+        {notice && <p role="status" className="mb-3 text-sm text-leaf">{notice}</p>}
         {loading ? <div className="shimmer h-24" aria-busy="true" /> : guests.length === 0 ? (
           <p className="text-sm text-soft">No guests yet. Paste a list above — each guest gets their own personal RSVP link.</p>
         ) : (

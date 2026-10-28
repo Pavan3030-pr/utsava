@@ -1,6 +1,6 @@
 import { daysBetween } from "../dates";
 import { formatINRFull } from "../format";
-import { LANGUAGES, type EventPlan, type Intake, type PlanPart } from "../schemas";
+import { LANGUAGES, type Intake, type PlanPart } from "../schemas";
 
 /** Strip characters that could close our <user_input> delimiter or smuggle markup. */
 export function sanitizeField(value: string | undefined, max = 1000): string {
@@ -60,28 +60,4 @@ Only fill fields the text clearly implies; leave others out. Resolve relative da
 
 export function buildParsePrompt(text: string, today: string): string {
   return `today: ${today}\n\n<user_input>\n${sanitizeField(text, 800)}\n</user_input>`;
-}
-
-export const REFINE_SYSTEM = `${PLANNER_SYSTEM}
-
-YOU ARE NOW REVISING AN EXISTING PLAN
-- Apply the user's instruction. Return ONLY the slices that must change inside "updates" (core = title/tagline/summary/budget; schedule = schedule/timeline; ops = checklist/vendors; ideas = themes/culturalNotes/risks/invitation). Each slice you include must be complete. Omit untouched slices — this keeps replies fast.
-- Change only what the instruction requires, plus anything that must follow from it (e.g. a budget cut flows into every affected line, the timeline and vendor ranges).
-- Keep unaffected checklist task wording identical so the user's progress is preserved.
-- "reply" is a friendly 1-2 sentence answer. "changes" lists 2-5 short bullets describing what actually changed, with INR figures where relevant.
-- If the instruction is impossible or unsafe, leave the plan unchanged and explain in "reply".`;
-
-export function buildRefinePrompt(intake: Intake, plan: EventPlan, instruction: string, today: string): string {
-  return `today: ${today}
-output language: ${LANGUAGES[intake.language]}
-event date: ${intake.date ?? "unspecified"}
-guests: ${intake.guests ?? "unspecified"}
-requested budget: ${intake.budget ? formatINRFull(intake.budget) : "flexible"}
-
-CURRENT PLAN (JSON):
-${JSON.stringify(plan)}
-
-<user_input>
-${sanitizeField(instruction, 500)}
-</user_input>`;
 }

@@ -21,6 +21,7 @@ import { buildIcs } from "@/lib/ics";
 import { normalizePlan, planToText } from "@/lib/plan-utils";
 import { repo, type EventRecord } from "@/lib/repo";
 import { createSaveQueue } from "@/lib/save-queue";
+import { dedupePlan } from "@/lib/dedupe";
 import {
   PLAN_PARTS, PlanCoreSchema, PlanIdeasSchema, PlanOpsSchema, PlanSchema, PlanScheduleSchema,
   type Ledger, type PartialPlan, type PlanPart, type StoredPlan,
@@ -142,10 +143,18 @@ export default function PlanPage() {
         recordRef.current = found;
         setRecord(found);
         if (found) document.title = `${found.intake.title} — Utsava`;
+        // Plans saved before duplicate protection existed: clean them once, keeping ticks and budget intact.
+        if (found?.plan) {
+          const { removed } = dedupePlan(found.plan);
+          if (removed > 0) {
+            persist({ ...found, plan: normalizePlan(found.plan, { ...found.intake, budget: undefined }, new Date(found.plan.meta?.generatedAt ?? Date.now()), true) }, { immediate: true });
+            flash(`Merged ${removed} repeated ${removed === 1 ? "entry" : "entries"} in your plan`);
+          }
+        }
       })
       .catch((e) => { if (alive) { setLoadError(e instanceof Error ? e.message : "Couldn’t load this plan"); setRecord(null); } });
     return () => { alive = false; };
-  }, [id]);
+  }, [id, persist, flash]);
 
   // Fire all three slices in parallel the first time we see an event without a plan
   useEffect(() => {
