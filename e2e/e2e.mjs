@@ -75,9 +75,32 @@ await clickText("button, a, [role=tab]", "Checklist"); await sleep(300);
 const ticked = await page.evaluate(() => [...document.querySelectorAll('input[type="checkbox"]')].filter((c) => c.checked).length);
 ok("ticked task survives reload (debounced save)", ticked >= 1, `ticked=${ticked}`);
 
+console.log("\n== 4b. Next best moves, run sheet, lazy tabs, print ==");
+await clickText("button, a, [role=tab]", "Overview"); await sleep(500);
+txt = await bodyText();
+ok("Overview shows 'What to do next' with at least one action", txt.includes("What to do next") && /Start your vendor shortlist|high-priority task/.test(txt));
+await clickText("button", "Find vendors"); await sleep(600);
+const onVendors = await page.evaluate(() => document.querySelector("#tab-vendors")?.getAttribute("aria-selected") === "true");
+ok("an action's button jumps to the right tab", onVendors);
+await clickText("button, a, [role=tab]", "Run sheet"); await sleep(700);
+txt = await bodyText();
+const lower = txt.toLowerCase();
+ok("Run sheet shows schedule, vendor hint and share actions", lower.includes("day-of run sheet") && lower.includes("opening pooja") && lower.includes("print this sheet") && lower.includes("send to coordinator"));
+await clickText("button, a, [role=tab]", "Guests & RSVP"); await sleep(500);
+ok("lazy-loaded Guests tab renders (no crash)", (await bodyText()).length > 200);
+await page.evaluate(() => { window.__printed = false; window.print = () => { window.__printed = true; }; }); // headless Chrome fires afterprint at once; stub it so print mode stays observable
+await clickText("button", "Save as PDF"); await sleep(1500);
+ok("print dialog is requested only after every section is loaded", await page.evaluate(() => window.__printed === true));
+const printed = await page.evaluate(() => ({ panels: document.querySelectorAll('[role="tabpanel"]').length, text: document.body.innerText }));
+ok("print mode renders EVERY section incl. lazy tabs", printed.panels >= 8 && printed.text.toLowerCase().includes("minute by minute") && printed.text.includes("Opening Pooja"), `panels=${printed.panels}`);
+const pdf = await page.pdf({ format: "A4", printBackground: true });
+ok("PDF export produces a real multi-page document", pdf.length > 30000, `${Math.round(pdf.length / 1024)} KB`);
+await page.reload({ waitUntil: "domcontentloaded" }); await sleep(1200);
+
 console.log("\n== 5. Copilot: streaming, apply, undo ==");
 await clickText("button, a, [role=tab]", "AI Copilot"); await sleep(300);
-const budgetOf = async () => { await clickText("button, a, [role=tab]", "Budget"); await sleep(250); const t = await bodyText(); await clickText("button, a, [role=tab]", "AI Copilot"); await sleep(250); return t; };
+const settle = () => page.waitForFunction(() => !document.querySelector('[aria-label="Loading section"]'), { timeout: 10000 });
+const budgetOf = async () => { await clickText("button, a, [role=tab]", "Budget"); await settle(); await sleep(250); const t = await bodyText(); await clickText("button, a, [role=tab]", "AI Copilot"); await settle(); await sleep(250); return t; };
 const beforeTxt = await budgetOf();
 await ctl({ delayMs: 120 });
 t0 = Date.now();

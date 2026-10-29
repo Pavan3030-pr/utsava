@@ -36,10 +36,19 @@ flowchart LR
 * **Stateless server;** all state in Postgres (or local fallback).
 * **Security:** RLS on every table; public RSVP route is token-scoped, exposes only that guest's events, rate-limited, validated; prompt delimiters + sanitising; CSP + security headers; service key server-only.
 
+## Planning utility
+| Feature | What it does |
+|---|---|
+| **Next best moves** | Overview card that reads your own data and says what to do now: overdue/upcoming payments, overspent categories, milestones due this week, vendors still unbooked, open high-priority tasks. One tap jumps to the right tab. |
+| **Day-of run sheet** | One page for you and your coordinator: minute-by-minute schedule, booked/quoted vendor phone numbers (tap to call), open tasks and payments. Print it or send it on WhatsApp. |
+| **RSVP deadline & reminders** | Set a “reply by” date once; it appears on every invitation and on each guest’s RSVP page. One-tap WhatsApp reminders name the events a guest still owes an answer for. |
+| **Catering estimate** | From real RSVPs: plates to order (confirmed + half the “maybe”s + buffer) and the resulting cost per plate on your catering budget. |
+| **Faster tabs** | Heavy tabs load on demand and are preloaded in the background; printing waits for all of them. |
+
 ## End-to-end & accessibility tests
 `e2e/` drives the real production build in a real browser against a **fake Gemini server** (no API key, no cost, deterministic), with failure injection (503s, truncated JSON streams):
 ```bash
-npm run build && cd e2e && npm install && npm test     # 24 behaviour checks
+npm run build && cd e2e && npm install && npm test     # 31 behaviour checks (uses your installed Google Chrome)
 npm run a11y                                           # axe-core: WCAG 2.1 AA on every screen
 ```
 Covers generation (4 parallel slices), duplicate removal, persistence across reload, Copilot streaming / scoped prompts / undo, silent self-healing, rate limiting, cross-origin blocking and mobile layout.
@@ -109,4 +118,4 @@ gcloud run deploy utsava --source . --region asia-south1 --allow-unauthenticated
 `NEXT_PUBLIC_*` are baked at build time — with `--source .` Cloud Build reads them from the env at build; on Vercel add them before deploying.
 
 ## Tests
-142 tests. `tests/` covers save-queue ordering, Redis/in-memory rate limiting, origin checks, model fallback, budget reconciliation, INR parsing, dates, ICS (RFC 5545), rate limiter, prompt-injection, schema validation, multi-event RSVP maths, spend ledger, and a regression for progress preservation.
+154 tests. `tests/` covers save-queue ordering, Redis/in-memory rate limiting, origin checks, model fallback, budget reconciliation, INR parsing, dates, ICS (RFC 5545), rate limiter, prompt-injection, schema validation, multi-event RSVP maths, spend ledger, and a regression for progress preservation.

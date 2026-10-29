@@ -2,6 +2,8 @@ import { daysBetween, formatDate, todayIso } from "@/lib/dates";
 import { formatINR } from "@/lib/format";
 import { checklistProgress, upcomingMilestones } from "@/lib/plan-utils";
 import type { Intake, PartialPlan } from "@/lib/schemas";
+import type { NextAction, TabTarget } from "@/lib/actions";
+import { NextActions } from "./NextActions";
 import { Panel, Waiting, list } from "./ui";
 import { WeatherCard } from "./WeatherCard";
 
@@ -15,7 +17,7 @@ function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: 
   );
 }
 
-export function Overview({ plan, intake, streaming }: { plan: PartialPlan; intake: Intake; streaming: boolean }) {
+export function Overview({ plan, intake, streaming, actions = [], onNavigate }: { plan: PartialPlan; intake: Intake; streaming: boolean; actions?: NextAction[]; onNavigate?: (tab: TabTarget) => void }) {
   const days = intake.date ? daysBetween(todayIso(), intake.date) : undefined;
   const progress = checklistProgress(plan);
   const notes = list(plan.culturalNotes);
@@ -30,6 +32,8 @@ export function Overview({ plan, intake, streaming }: { plan: PartialPlan; intak
         <Kpi label="Checklist" value={`${progress.percent}%`} sub={`${progress.done}/${progress.total} tasks`} tone="bg-leaf-soft text-leaf" />
         <Kpi label="Location" value={intake.location || "India"} sub={intake.style} tone="bg-cream text-ink" />
       </div>
+
+      {!streaming && onNavigate && <NextActions actions={actions} onGo={onNavigate} />}
 
       {next.length > 0 && (
         <Panel kicker="Up next" title="Your next milestones">

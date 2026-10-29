@@ -35,18 +35,20 @@ export async function GET(req: NextRequest, ctx: Ctx) {
   if ("error" in found) return found.error;
   const { admin, guest } = found;
 
-  const { data: ev } = await admin.from("events").select("intake,plan").eq("id", guest.event_id).maybeSingle();
+  const { data: ev } = await admin.from("events").select("intake,plan,ledger").eq("id", guest.event_id).maybeSingle();
   if (!ev?.plan) return jsonError("This event isn’t ready yet.", 404);
 
   const plan = ev.plan as { title: string; tagline: string; themes?: { palette?: string[] }[]; schedule?: { day: string; name: string; vibe: string; items: { time: string; activity: string }[] }[] };
   const intake = ev.intake as { date?: string; location?: string };
   const schedule = (plan.schedule ?? []).filter((s) => guest.invited.includes(s.name));
+  const rawBy = (ev.ledger as { rsvpBy?: unknown } | null)?.rsvpBy;
+  const replyBy = typeof rawBy === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rawBy) ? rawBy : null;
 
   return Response.json(
     {
       guest: { name: guest.name, invited: guest.invited },
       event: {
-        title: plan.title, tagline: plan.tagline, date: intake.date ?? null, location: intake.location ?? null,
+        title: plan.title, tagline: plan.tagline, date: intake.date ?? null, location: intake.location ?? null, replyBy,
         palette: plan.themes?.[0]?.palette ?? [], schedule,
       },
       responses: (guest.rsvps ?? []).map((r) => ({ event: r.event_name, status: r.status, partySize: r.party_size, note: r.note ?? "" })),

@@ -1,4 +1,5 @@
-import type { Guest, RsvpStatus } from "./schemas";
+import { formatDate } from "./dates";
+import type { EventPlan, Guest, Ledger, RsvpStatus } from "./schemas";
 
 export interface EventStats {
   invited: number;
@@ -66,8 +67,47 @@ export function rsvpLink(origin: string, token: string): string {
   return `${origin.replace(/\/$/, "")}/rsvp/${token}`;
 }
 
-export function inviteMessage(opts: { guestName: string; eventTitle: string; link: string }): string {
-  return `Namaste ${opts.guestName} 🙏\n\nYou are warmly invited to ${opts.eventTitle}.\nPlease see the details and let us know if you can join us:\n${opts.link}`;
+export function inviteMessage(opts: { guestName: string; eventTitle: string; link: string; replyBy?: string }): string {
+  const by = opts.replyBy ? `\nKindly reply by ${formatDate(opts.replyBy)}.` : "";
+  return `Namaste ${opts.guestName} 🙏\n\nYou are warmly invited to ${opts.eventTitle}.\nPlease see the details and let us know if you can join us:\n${opts.link}${by}`;
+}
+
+/** Gentle nudge for guests who haven't answered; names the events still open. */
+export function reminderMessage(opts: { guestName: string; eventTitle: string; link: string; pendingEvents: string[]; replyBy?: string; today?: string }): string {
+  const what = opts.pendingEvents.length ? ` for ${opts.pendingEvents.join(", ")}` : "";
+  const by = opts.replyBy ? ` We’d be grateful if you could reply by ${formatDate(opts.replyBy)}.` : "";
+  return `Namaste ${opts.guestName} 🙏\n\nA gentle reminder about ${opts.eventTitle} — we haven’t heard from you yet${what}.${by}\nIt takes 20 seconds:\n${opts.link}`;
+}
+
+/** Events a guest has been invited to but not answered. */
+export function pendingEventsFor(g: Guest): string[] {
+  return g.invited.filter((e) => !g.rsvps.some((r) => r.event === e));
+}
+
+export interface CateringEstimate {
+  /** plates to order for the busiest event: confirmed + half the "maybe" + a buffer for walk-ins */
+  plates: number;
+  confirmed: number;
+  buffer: number;
+  /** catering budget ÷ plates, if the plan has a catering line */
+  perPlate?: number;
+  cateringBudget?: number;
+  event: string;
+}
+
+/** Real RSVP numbers → how many plates to order and what each costs. */
+export function cateringEstimate(stats: Record<string, EventStats>, plan: Pick<EventPlan, "budget">, ledger?: Pick<Ledger, "expenses">): CateringEstimate | null {
+  const entries = Object.entries(stats).filter(([, s]) => s.invited > 0);
+  if (entries.length === 0) return null;
+  const [event, s] = entries.sort((a, b) => b[1].headcount + b[1].maybe - (a[1].headcount + a[1].maybe))[0];
+  const base = s.headcount + Math.ceil(s.maybe / 2);
+  if (base === 0) return null;
+  const buffer = Math.max(3, Math.ceil(base * 0.08));
+  const plates = base + buffer;
+  const line = plan.budget.breakdown.find((b) => /cater|food|menu/i.test(b.category));
+  const committed = (ledger?.expenses ?? []).filter((e) => /cater|food|menu/i.test(e.category)).reduce((n, e) => n + e.amount, 0);
+  const cateringBudget = line ? Math.max(line.amount, committed) : committed || undefined;
+  return { plates, confirmed: s.headcount, buffer, event, cateringBudget, perPlate: cateringBudget ? Math.round(cateringBudget / plates) : undefined };
 }
 
 export function whatsappUrl(phone: string | undefined, text: string): string {

@@ -19,6 +19,8 @@ const csp = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // Pin tracing to this project (silences the "multiple lockfiles" warning when a stray package-lock.json exists in a parent folder).
+  outputFileTracingRoot: process.cwd(),
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,

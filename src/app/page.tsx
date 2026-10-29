@@ -36,6 +36,8 @@ const COMPARE = [
   ["Budget maths verified by code, not guessed", false, true],
   ["Ask AI to “cut 15%” and the plan rewrites itself", false, true],
   ["Real nearby vendors with phone numbers, and real weather for your date", false, true],
+  ["Day-of run sheet, RSVP reminders and a catering plate estimate", false, true],
+  ["“What to do next” guidance from your own spend, vendors and dates", false, true],
   ["Planned-vs-actual spend with overspend alerts", true, true],
 ] as const;
 

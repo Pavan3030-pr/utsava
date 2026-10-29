@@ -1,21 +1,16 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { experimental_useObject as useObject } from "@ai-sdk/react";
 import { SiteHeader } from "@/components/Logo";
-import { Budget } from "@/components/plan/Budget";
 import { Checklist } from "@/components/plan/Checklist";
-import { Copilot } from "@/components/plan/Copilot";
 import { GenerationStatus, type PartState } from "@/components/plan/GenerationStatus";
-import { Guests } from "@/components/plan/Guests";
-import { Ideas } from "@/components/plan/Ideas";
 import { Overview } from "@/components/plan/Overview";
-import { Schedule } from "@/components/plan/Schedule";
-import { Spend } from "@/components/plan/Spend";
 import { Skeleton } from "@/components/plan/ui";
-import { Vendors } from "@/components/plan/Vendors";
+import { nextActions, type TabTarget } from "@/lib/actions";
 import { daysBetween, todayIso } from "@/lib/dates";
 import { buildIcs } from "@/lib/ics";
 import { normalizePlan, planToText } from "@/lib/plan-utils";
@@ -27,6 +22,28 @@ import {
   type Ledger, type PartialPlan, type PlanPart, type StoredPlan,
 } from "@/lib/schemas";
 
+/** Heavy tabs load on demand (and are preloaded once the plan is ready, and before printing). */
+const loaders = {
+  budget: () => import("@/components/plan/Budget").then((m) => m.Budget),
+  spend: () => import("@/components/plan/Spend").then((m) => m.Spend),
+  schedule: () => import("@/components/plan/Schedule").then((m) => m.Schedule),
+  vendors: () => import("@/components/plan/Vendors").then((m) => m.Vendors),
+  guests: () => import("@/components/plan/Guests").then((m) => m.Guests),
+  ideas: () => import("@/components/plan/Ideas").then((m) => m.Ideas),
+  runsheet: () => import("@/components/plan/RunSheet").then((m) => m.RunSheet),
+  copilot: () => import("@/components/plan/Copilot").then((m) => m.Copilot),
+};
+const TabLoading = () => <div role="status" aria-label="Loading section" className="shimmer h-56" aria-busy="true" />;
+const Budget = dynamic(loaders.budget, { loading: TabLoading });
+const Spend = dynamic(loaders.spend, { loading: TabLoading });
+const Schedule = dynamic(loaders.schedule, { loading: TabLoading });
+const Vendors = dynamic(loaders.vendors, { loading: TabLoading });
+const Guests = dynamic(loaders.guests, { loading: TabLoading });
+const Ideas = dynamic(loaders.ideas, { loading: TabLoading });
+const RunSheet = dynamic(loaders.runsheet, { loading: TabLoading });
+const Copilot = dynamic(loaders.copilot, { loading: TabLoading });
+const preloadTabs = () => Promise.all(Object.values(loaders).map((load) => load()));
+
 const TABS = [
   { id: "overview", label: "Overview", icon: "◈" },
   { id: "budget", label: "Budget", icon: "₹" },
@@ -35,6 +52,7 @@ const TABS = [
   { id: "checklist", label: "Checklist", icon: "☑" },
   { id: "vendors", label: "Vendors", icon: "✦" },
   { id: "guests", label: "Guests & RSVP", icon: "☺", needsPlan: true },
+  { id: "runsheet", label: "Run sheet", icon: "⚑", needsPlan: true },
   { id: "ideas", label: "Ideas & invite", icon: "❀" },
   { id: "copilot", label: "AI Copilot", icon: "✧", needsPlan: true },
 ] as const;
@@ -52,6 +70,13 @@ export default function PlanPage() {
   const [tab, setTab] = useState<TabId>("overview");
   const [copilotSeen, setCopilotSeen] = useState(false);
   useEffect(() => { if (tab === "copilot") setCopilotSeen(true); }, [tab]);
+  // Warm the other tabs in the background once the plan exists, so switching feels instant.
+  const hasPlan = Boolean(record?.plan);
+  useEffect(() => {
+    if (!hasPlan) return;
+    const t = window.setTimeout(() => { void preloadTabs(); }, 1200);
+    return () => window.clearTimeout(t);
+  }, [hasPlan]);
   const [printing, setPrinting] = useState(false);
   const [toast, setToast] = useState("");
   const [genError, setGenError] = useState("");
@@ -185,8 +210,8 @@ export default function PlanPage() {
     if (!printing) return;
     const done = () => setPrinting(false);
     window.addEventListener("afterprint", done);
-    const t = requestAnimationFrame(() => window.print());
-    return () => { window.removeEventListener("afterprint", done); cancelAnimationFrame(t); };
+    const t = window.setTimeout(() => window.print(), 250); // let the just-mounted sections paint
+    return () => { window.removeEventListener("afterprint", done); window.clearTimeout(t); };
   }, [printing]);
 
   // Hooks must run on every render, so these live above the early returns below.
@@ -264,6 +289,8 @@ export default function PlanPage() {
     requestAnimationFrame(() => document.getElementById(`tab-${next.id}`)?.focus());
   };
 
+  const actions = stored ? nextActions({ plan: stored, intake, ledger: record.ledger, today: todayIso() }) : [];
+  const go = (t: TabTarget) => setTab(t as TabId);
   const show = (t: TabId) => printing || tab === t;
   const panel = (t: TabId, node: React.ReactNode) => show(t) && <div role="tabpanel" id={`panel-${t}`} aria-labelledby={`tab-${t}`} className={t === "overview" ? "" : "print-section"}><h2 className="sr-only">{TABS.find((x) => x.id === t)?.label}</h2>{node}</div>;
 
@@ -293,7 +320,7 @@ export default function PlanPage() {
             )}
           </div>
           <div className="no-print relative mt-6 flex flex-wrap gap-3">
-            <button type="button" className="btn btn-ghost btn-sm" disabled={!stored} onClick={() => setPrinting(true)}>Save as PDF / Print</button>
+            <button type="button" className="btn btn-ghost btn-sm" disabled={!stored} onClick={() => { void preloadTabs().finally(() => setPrinting(true)); }}>Save as PDF / Print</button>
             <button type="button" className="btn btn-ghost btn-sm" disabled={!stored || !intake.date} onClick={downloadIcs}>Add to calendar (.ics)</button>
             <button type="button" className="btn btn-primary btn-sm" disabled={!stored} onClick={share}>Share plan</button>
           </div>
@@ -324,13 +351,14 @@ export default function PlanPage() {
           </nav>
 
           <div className="min-w-0">
-            {panel("overview", <Overview plan={plan} intake={intake} streaming={streaming} />)}
+            {panel("overview", <Overview plan={plan} intake={intake} streaming={streaming} actions={actions} onNavigate={go} />)}
             {panel("budget", <Budget plan={plan} guests={intake.guests} streaming={streaming} />)}
             {stored && panel("spend", <Spend plan={stored} ledger={record.ledger} onChange={setLedger} />)}
             {panel("schedule", <Schedule plan={plan} eventDate={intake.date} streaming={streaming} />)}
             {panel("checklist", <Checklist plan={plan} streaming={streaming} onToggle={toggle} />)}
             {panel("vendors", <Vendors plan={plan} streaming={streaming} ledger={record.ledger} city={intake.location} onLedger={setLedger} />)}
-            {stored && !printing && tab === "guests" && panel("guests", <Guests eventId={record.id} plan={stored} plannedGuests={intake.guests} />)}
+            {stored && !printing && tab === "guests" && panel("guests", <Guests eventId={record.id} plan={stored} plannedGuests={intake.guests} ledger={record.ledger} onLedger={setLedger} />)}
+            {stored && panel("runsheet", <RunSheet plan={stored} intake={intake} ledger={record.ledger} />)}
             {panel("ideas", <Ideas plan={plan} streaming={streaming} />)}
             {/* Stays mounted once opened (just hidden) so the conversation and Undo history survive switching tabs. */}
             {stored && !printing && (tab === "copilot" || copilotSeen) && (

@@ -3,12 +3,12 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LogoMark } from "@/components/Logo";
-import { formatDate } from "@/lib/dates";
+import { daysBetween, formatDate, todayIso } from "@/lib/dates";
 import { safePalette } from "@/lib/plan-utils";
 
 interface Invite {
   guest: { name: string; invited: string[] };
-  event: { title: string; tagline: string; date: string | null; location: string | null; palette: string[];
+  event: { title: string; tagline: string; date: string | null; location: string | null; replyBy?: string | null; palette: string[];
     schedule: { day: string; name: string; vibe: string; items: { time: string; activity: string }[] }[] };
   responses: { event: string; status: "yes" | "no" | "maybe"; partySize: number; note: string }[];
 }
@@ -85,7 +85,13 @@ export default function RsvpPage() {
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-5" aria-label="RSVP">
-            <p className="surface p-5 text-center">Namaste <strong>{invite.guest.name}</strong> 🙏 — will you join us?</p>
+            <p className="surface p-5 text-center">Namaste <strong>{invite.guest.name}</strong> 🙏 — will you join us?
+              {invite.event.replyBy && (
+                <span className="mt-1 block text-sm text-soft">
+                  {daysBetween(todayIso(), invite.event.replyBy) >= 0 ? `Please reply by ${formatDate(invite.event.replyBy)}.` : `The hosts asked for replies by ${formatDate(invite.event.replyBy)} — you can still answer below.`}
+                </span>
+              )}
+            </p>
             {invite.guest.invited.map((ev) => {
               const day = invite.event.schedule.find((s) => s.name === ev);
               const a = answers[ev] ?? { status: "", partySize: 1, note: "" };

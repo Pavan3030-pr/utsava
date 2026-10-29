@@ -20,7 +20,7 @@ await page.$eval("#date", (el) => { const set = Object.getOwnPropertyDescriptor(
 await (await page.evaluateHandle(() => [...document.querySelectorAll("button")].find((b) => b.textContent.includes("Generate")))).asElement().click();
 await page.waitForFunction(() => [...document.querySelectorAll("button")].some((b) => b.textContent.includes("Save as PDF") && !b.disabled), { timeout: 40000 });
 await sleep(800);
-for (const tab of ["Overview", "Budget", "Spend tracker", "Schedule", "Checklist", "Vendors", "Ideas & invite", "AI Copilot"]) {
+for (const tab of ["Overview", "Budget", "Spend tracker", "Schedule", "Checklist", "Vendors", "Guests & RSVP", "Run sheet", "Ideas & invite", "AI Copilot"]) {
   await (await page.evaluateHandle((t) => [...document.querySelectorAll('[role=tab], nav button, button')].find((e) => e.textContent.trim().includes(t)), tab)).asElement().click();
   await sleep(500); await audit(tab);
 }

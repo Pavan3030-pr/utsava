@@ -219,7 +219,7 @@ export interface ShortlistItem {
   status: ShortlistStatus;
   notes?: string;
 }
-export interface Ledger { expenses: Expense[]; shortlist: ShortlistItem[] }
+export interface Ledger { expenses: Expense[]; shortlist: ShortlistItem[]; /** YYYY-MM-DD — guests are asked to reply by this date */ rsvpBy?: string }
 export const EMPTY_LEDGER: Ledger = { expenses: [], shortlist: [] };
 
 export const RefineResultSchema = z.object({

@@ -3,15 +3,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { addGuests, listGuests, removeGuest, setGuestInvites } from "@/lib/guests-db";
 import { findDuplicateGuests, planGuestImport } from "@/lib/dedupe";
-import { eventNames, guestsToCsv, guestsWaiting, inviteMessage, parseBulkGuests, rsvpLink, summarizeRsvps, whatsappUrl } from "@/lib/guests";
-import type { Guest, StoredPlan } from "@/lib/schemas";
+import { cateringEstimate, eventNames, guestsToCsv, guestsWaiting, inviteMessage, parseBulkGuests, pendingEventsFor, reminderMessage, rsvpLink, summarizeRsvps, whatsappUrl } from "@/lib/guests";
+import { formatINR } from "@/lib/format";
+import { todayIso } from "@/lib/dates";
+import type { Guest, Ledger, StoredPlan } from "@/lib/schemas";
 import { CLOUD_ENABLED } from "@/lib/supabase/client";
 import { Panel } from "./ui";
 
 const GROUPS = ["Bride’s family", "Groom’s family", "Friends", "Colleagues", "Neighbours", "Family"];
 const STATUS_STYLE = { yes: "bg-leaf-soft text-leaf", no: "bg-rose-soft text-kumkum-dark", maybe: "bg-gold-soft text-saffron-dark", pending: "bg-[#f3ece2] text-soft" } as const;
 
-export function Guests({ eventId, plan, plannedGuests }: { eventId: string; plan: StoredPlan; plannedGuests?: number }) {
+export function Guests({ eventId, plan, plannedGuests, ledger, onLedger }: { eventId: string; plan: StoredPlan; plannedGuests?: number; ledger: Ledger; onLedger: (l: Ledger) => void }) {
   const events = useMemo(() => eventNames(plan.schedule), [plan.schedule]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(CLOUD_ENABLED);
@@ -43,6 +45,7 @@ export function Guests({ eventId, plan, plannedGuests }: { eventId: string; plan
 
   const stats = summarizeRsvps(guests, events);
   const confirmed = Math.max(...events.map((e) => stats[e]?.headcount ?? 0), 0);
+  const catering = cateringEstimate(stats, plan, ledger);
 
   const add = async () => {
     const items = parseBulkGuests(bulk).map((g) => ({ ...g, group: g.group ?? group }));
@@ -116,6 +119,27 @@ export function Guests({ eventId, plan, plannedGuests }: { eventId: string; plan
         <p role="alert" className="rounded-2xl bg-rose-soft p-4 text-sm text-kumkum-dark">⚠ Confirmed headcount ({confirmed}) is above the {plannedGuests} guests you planned for — revisit catering and venue capacity.</p>
       )}
 
+      {catering && (
+        <section className="surface flex flex-wrap items-center justify-between gap-4 p-5" aria-label="Catering estimate">
+          <div>
+            <p className="eyebrow !text-saffron-dark">Catering estimate · {catering.event}</p>
+            <p className="h-display mt-1 text-3xl font-semibold grad-text">{catering.plates}<span className="ml-1 text-sm font-medium text-soft">plates to order</span></p>
+            <p className="mt-1 text-sm text-soft">{catering.confirmed} confirmed + {catering.buffer} buffer (and half of the “maybe” replies).</p>
+          </div>
+          {catering.perPlate && catering.cateringBudget && (
+            <p className="rounded-2xl bg-gold-soft px-4 py-3 text-sm text-saffron-dark">≈ <strong>{formatINR(catering.perPlate)}</strong> per plate on your {formatINR(catering.cateringBudget)} catering budget</p>
+          )}
+        </section>
+      )}
+
+      <Panel kicker="Reply deadline" title="When do you need answers?">
+        <label htmlFor="replyby" className="field-label">Ask guests to reply by</label>
+        <div className="flex flex-wrap items-center gap-3">
+          <input id="replyby" type="date" min={todayIso()} value={ledger.rsvpBy ?? ""} onChange={(e) => onLedger({ ...ledger, rsvpBy: e.target.value || undefined })} className="input max-w-[14rem]" />
+          <p className="text-sm text-soft">It appears on every invitation, WhatsApp message and reminder.</p>
+        </div>
+      </Panel>
+
       <Panel kicker="Add guests" title="Paste your list">
         <label htmlFor="bulk" className="field-label">One guest per line: <code>Name, phone, group</code> (phone &amp; group optional)</label>
         <textarea id="bulk" rows={4} value={bulk} onChange={(e) => setBulk(e.target.value)} placeholder={"Anita Reddy, 9876543210, Bride’s family\nRavi Kumar, 9123456780\nPriya"} className="input resize-y" />
@@ -172,9 +196,15 @@ export function Guests({ eventId, plan, plannedGuests }: { eventId: string; plan
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <a className="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer"
-                    href={whatsappUrl(g.phone, inviteMessage({ guestName: g.name, eventTitle: plan.title, link: link(g) }))}>
+                    href={whatsappUrl(g.phone, inviteMessage({ guestName: g.name, eventTitle: plan.title, link: link(g), replyBy: ledger.rsvpBy }))}>
                     WhatsApp<span className="sr-only"> invite to {g.name} (opens in a new tab)</span>
                   </a>
+                  {pendingEventsFor(g).length > 0 && (
+                    <a className="btn btn-ghost btn-sm" target="_blank" rel="noopener noreferrer"
+                      href={whatsappUrl(g.phone, reminderMessage({ guestName: g.name, eventTitle: plan.title, link: link(g), pendingEvents: pendingEventsFor(g), replyBy: ledger.rsvpBy }))}>
+                      Remind<span className="sr-only"> {g.name} on WhatsApp (opens in a new tab)</span>
+                    </a>
+                  )}
                   <button type="button" className="btn btn-ghost btn-sm" onClick={() => copy(g)}>{copied === g.id ? "Copied ✓" : "Copy link"}</button>
                   <button type="button" className="btn btn-ghost btn-sm" aria-label={`Remove ${g.name}`} onClick={async () => { await removeGuest(g.id); await refresh(); }}>✕</button>
                 </div>
