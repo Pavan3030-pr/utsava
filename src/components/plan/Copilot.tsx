@@ -131,7 +131,7 @@ export function Copilot({ intake, plan, onApply }: { intake: Intake; plan: Store
     <div className="surface flex h-[34rem] max-h-[75vh] flex-col overflow-hidden">
       <div className="flex items-start justify-between gap-3 border-b border-line bg-gradient-to-r from-gold-soft to-rose-soft px-5 py-3">
         <div>
-          <h3 className="h-display text-lg font-semibold">AI Copilot</h3>
+          <h2 className="h-display text-lg font-semibold">AI Copilot</h2>
           <p className="text-xs text-soft">Revises your plan, keeps the tasks you’ve ticked, never duplicates.</p>
         </div>
         <button type="button" onClick={undo} disabled={busy || undoDepth === 0} className="btn btn-ghost btn-sm shrink-0 disabled:opacity-40">↶ Undo</button>

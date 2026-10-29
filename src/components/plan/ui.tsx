@@ -19,7 +19,7 @@ export function Panel({ title, kicker, children, className = "" }: { title?: str
   return (
     <section className={`surface p-6 sm:p-7 ${className}`}>
       {kicker && <p className="eyebrow !text-saffron-dark">{kicker}</p>}
-      {title && <h3 className="h-display mt-1.5 text-2xl font-semibold">{title}</h3>}
+      {title && <h2 className="h-display mt-1.5 text-2xl font-semibold">{title}</h2>}
       <div className={title ? "mt-4" : ""}>{children}</div>
     </section>
   );

@@ -36,6 +36,14 @@ flowchart LR
 * **Stateless server;** all state in Postgres (or local fallback).
 * **Security:** RLS on every table; public RSVP route is token-scoped, exposes only that guest's events, rate-limited, validated; prompt delimiters + sanitising; CSP + security headers; service key server-only.
 
+## End-to-end & accessibility tests
+`e2e/` drives the real production build in a real browser against a **fake Gemini server** (no API key, no cost, deterministic), with failure injection (503s, truncated JSON streams):
+```bash
+npm run build && cd e2e && npm install && npm test     # 24 behaviour checks
+npm run a11y                                           # axe-core: WCAG 2.1 AA on every screen
+```
+Covers generation (4 parallel slices), duplicate removal, persistence across reload, Copilot streaming / scoped prompts / undo, silent self-healing, rate limiting, cross-origin blocking and mobile layout.
+
 ## AI Copilot
 | What | How |
 |---|---|

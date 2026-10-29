@@ -13,9 +13,9 @@ export function Schedule({ plan, eventDate, streaming }: { plan: PartialPlan; ev
           <div className="space-y-6">
             {days.map((d, i) => (
               <div key={`${d.day}-${i}`}>
-                <h4 className="flex flex-wrap items-center gap-2 font-semibold">
+                <h3 className="flex flex-wrap items-center gap-2 font-semibold">
                   <span className="chip">{d.day}</span> {d.name}
-                </h4>
+                </h3>
                 {d.vibe && <p className="mt-1 text-sm italic text-soft">{d.vibe}</p>}
                 <ol className="mt-3 space-y-2 border-l-2 border-line pl-4">
                   {list(d.items).map((it, j) => (

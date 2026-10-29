@@ -95,7 +95,7 @@ export function Vendors({ plan, streaming, ledger, city, onLedger }: {
               const items = ledger.shortlist.filter((s) => s.status === stage.id);
               return (
                 <section key={stage.id} className={`rounded-2xl p-3 ${stage.tone}`} aria-label={stage.label}>
-                  <h4 className="px-1 text-xs font-bold uppercase tracking-wide text-soft">{stage.label} · {items.length}</h4>
+                  <h3 className="px-1 text-xs font-bold uppercase tracking-wide text-soft">{stage.label} · {items.length}</h3>
                   <ul className="mt-2 space-y-2">
                     {items.map((s) => (
                       <li key={s.id} className="rounded-xl bg-white p-3 text-sm shadow-sm">

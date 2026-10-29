@@ -18,7 +18,8 @@ export function getModelChain(env: NodeJS.ProcessEnv = process.env): LanguageMod
   const chain: LanguageModel[] = [];
   const googleKey = env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (googleKey) {
-    const google = createGoogleGenerativeAI({ apiKey: googleKey });
+    // GOOGLE_GENERATIVE_AI_BASE_URL lets you route through a proxy/gateway (and lets the e2e suite use a fake model).
+    const google = createGoogleGenerativeAI({ apiKey: googleKey, ...(env.GOOGLE_GENERATIVE_AI_BASE_URL ? { baseURL: env.GOOGLE_GENERATIVE_AI_BASE_URL } : {}) });
     const primary = env.GEMINI_MODEL || "gemini-2.5-flash";
     const fallback = env.GEMINI_FALLBACK_MODEL || "gemini-2.5-flash-lite";
     chain.push(google(primary));

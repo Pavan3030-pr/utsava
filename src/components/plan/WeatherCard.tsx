@@ -26,7 +26,7 @@ export function WeatherCard({ city, date }: { city: string; date: string }) {
     <Panel kicker={w.mode === "forecast" ? "Live forecast" : "Typical weather for your dates"} title={`Weather in ${w.place}`}>
       <dl className="grid grid-cols-3 gap-3 text-center">
         <div className="rounded-2xl bg-cream/70 p-3"><dt className="text-xs font-semibold uppercase tracking-wide text-soft">High / Low</dt><dd className="h-display mt-1 text-xl font-semibold tabular-nums">{Math.round(w.maxC)}° / {Math.round(w.minC)}°C</dd></div>
-        <div className={`rounded-2xl p-3 ${rainTone}`}><dt className="text-xs font-semibold uppercase tracking-wide opacity-70">{w.mode === "forecast" ? "Rain chance" : "Rainy days"}</dt><dd className="h-display mt-1 text-xl font-semibold tabular-nums">{Math.round(w.rainChance)}%</dd></div>
+        <div className={`rounded-2xl p-3 ${rainTone}`}><dt className="text-xs font-semibold uppercase tracking-wide">{w.mode === "forecast" ? "Rain chance" : "Rainy days"}</dt><dd className="h-display mt-1 text-xl font-semibold tabular-nums">{Math.round(w.rainChance)}%</dd></div>
         <div className="rounded-2xl bg-cream/70 p-3"><dt className="text-xs font-semibold uppercase tracking-wide text-soft">Avg rainfall</dt><dd className="h-display mt-1 text-xl font-semibold tabular-nums">{w.rainMm} mm</dd></div>
       </dl>
       <ul className="mt-4 space-y-2 text-sm">

@@ -42,7 +42,7 @@ export function Spend({ plan, ledger, onChange }: { plan: StoredPlan; ledger: Le
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {kpis.map((x) => (
           <div key={x.k} className={`rounded-2xl p-4 ${x.tone}`}>
-            <p className="text-xs font-semibold uppercase tracking-wide opacity-70">{x.k}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide">{x.k}</p>
             <p className="h-display mt-1 text-2xl font-semibold tabular-nums">{x.v}</p>
           </div>
         ))}

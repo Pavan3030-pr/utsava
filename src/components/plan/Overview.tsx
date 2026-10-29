@@ -8,9 +8,9 @@ import { WeatherCard } from "./WeatherCard";
 function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone: string }) {
   return (
     <div className={`rounded-2xl p-4 ${tone}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide opacity-70">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide">{label}</p>
       <p className="h-display mt-1 text-2xl font-semibold">{value}</p>
-      {sub && <p className="text-xs opacity-70">{sub}</p>}
+      {sub && <p className="text-xs">{sub}</p>}
     </div>
   );
 }

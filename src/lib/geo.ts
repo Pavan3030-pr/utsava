@@ -18,10 +18,10 @@ export async function geocode(query: string): Promise<GeoPoint | null> {
   if (hit && Date.now() - hit.at < TTL) return hit.value;
 
   let found: GeoPoint | null = null;
-  for (const name of geoCandidates(query)) {
+  for (const name of geoCandidates(query).slice(0, 2)) {
     const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=en&format=json&countryCode=IN`;
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(5000), cache: "no-store" });
+      const res = await fetch(url, { signal: AbortSignal.timeout(3000), cache: "no-store" });
       if (!res.ok) continue;
       const json = (await res.json()) as { results?: { name: string; latitude: number; longitude: number; admin1?: string }[] };
       const r = json.results?.[0];

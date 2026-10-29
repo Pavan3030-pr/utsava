@@ -1,0 +1,14 @@
+{
+  "name": "utsava-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser end-to-end + accessibility tests that run the real app against a fake Gemini server (no API key, no cost, deterministic).",
+  "scripts": {
+    "test": "node run.mjs e2e",
+    "a11y": "node run.mjs axe"
+  },
+  "dependencies": {
+    "axe-core": "^4.10.0",
+    "puppeteer": "^24.0.0"
+  }
+}

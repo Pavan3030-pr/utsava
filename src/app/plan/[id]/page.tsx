@@ -50,6 +50,8 @@ export default function PlanPage() {
   const { id } = useParams<{ id: string }>();
   const [record, setRecord] = useState<EventRecord | null | undefined>(undefined);
   const [tab, setTab] = useState<TabId>("overview");
+  const [copilotSeen, setCopilotSeen] = useState(false);
+  useEffect(() => { if (tab === "copilot") setCopilotSeen(true); }, [tab]);
   const [printing, setPrinting] = useState(false);
   const [toast, setToast] = useState("");
   const [genError, setGenError] = useState("");
@@ -263,7 +265,7 @@ export default function PlanPage() {
   };
 
   const show = (t: TabId) => printing || tab === t;
-  const panel = (t: TabId, node: React.ReactNode) => show(t) && <div role="tabpanel" id={`panel-${t}`} aria-labelledby={`tab-${t}`} className={t === "overview" ? "" : "print-section"}>{node}</div>;
+  const panel = (t: TabId, node: React.ReactNode) => show(t) && <div role="tabpanel" id={`panel-${t}`} aria-labelledby={`tab-${t}`} className={t === "overview" ? "" : "print-section"}><h2 className="sr-only">{TABS.find((x) => x.id === t)?.label}</h2>{node}</div>;
 
   return (
     <div className="ambient min-h-screen">
@@ -330,9 +332,12 @@ export default function PlanPage() {
             {panel("vendors", <Vendors plan={plan} streaming={streaming} ledger={record.ledger} city={intake.location} onLedger={setLedger} />)}
             {stored && !printing && tab === "guests" && panel("guests", <Guests eventId={record.id} plan={stored} plannedGuests={intake.guests} />)}
             {panel("ideas", <Ideas plan={plan} streaming={streaming} />)}
-            {stored && !printing && tab === "copilot" && panel("copilot", (
-              <div className="mx-auto max-w-2xl"><Copilot intake={intake} plan={stored} onApply={(p) => { const rec = recordRef.current; if (rec) persist({ ...rec, plan: p }, { immediate: true }); }} /></div>
-            ))}
+            {/* Stays mounted once opened (just hidden) so the conversation and Undo history survive switching tabs. */}
+            {stored && !printing && (tab === "copilot" || copilotSeen) && (
+              <div role="tabpanel" id="panel-copilot" aria-labelledby="tab-copilot" hidden={tab !== "copilot"} className="print-section">
+                <div className="mx-auto max-w-2xl"><Copilot intake={intake} plan={stored} onApply={(p) => { const rec = recordRef.current; if (rec) persist({ ...rec, plan: p }, { immediate: true }); }} /></div>
+              </div>
+            )}
           </div>
         </div>
 
